@@ -1,0 +1,25 @@
+*** Begin File: include/velocity_controller.hpp
+#pragma once
+
+class VelocityController {
+public:
+    double compute_command(
+        double current_velocity,
+        double target_velocity) const;
+};
+*** End File
+*** Begin File: src/velocity_controller.cpp
+#include "velocity_controller.hpp"
+
+#include <algorithm>
+
+double VelocityController::compute_command(
+    double current_velocity,
+    double target_velocity) const
+{
+    const double error =
+        target_velocity - current_velocity;
+
+    return std::clamp(error, -2.0, 2.0);
+}
+*** End File

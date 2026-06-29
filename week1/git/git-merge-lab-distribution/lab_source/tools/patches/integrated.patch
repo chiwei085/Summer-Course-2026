@@ -1,0 +1,34 @@
+*** Begin File: include/velocity_controller.hpp
+#pragma once
+
+struct VelocityReading {
+    double meters_per_second;
+};
+
+struct VelocityTarget {
+    double desired_meters_per_second;
+};
+
+class VelocityController {
+public:
+    double compute_command(
+        const VelocityReading& reading,
+        const VelocityTarget& target) const;
+};
+*** End File
+*** Begin File: src/velocity_controller.cpp
+#include "velocity_controller.hpp"
+
+#include <algorithm>
+
+double VelocityController::compute_command(
+    const VelocityReading& reading,
+    const VelocityTarget& target) const
+{
+    const double error =
+        target.desired_meters_per_second
+        - reading.meters_per_second;
+
+    return std::clamp(error, -2.0, 2.0);
+}
+*** End File
