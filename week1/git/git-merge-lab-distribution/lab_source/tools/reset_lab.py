@@ -6,8 +6,28 @@ import subprocess
 from pathlib import Path
 
 
-REPO = Path(__file__).resolve().parents[1]
+SCRIPT_REPO = Path(__file__).resolve().parents[1]
 MAIN_COMMIT_MESSAGE = "refactor: introduce structured velocity types"
+
+
+def resolve_repo() -> Path:
+    if (SCRIPT_REPO / ".git").exists():
+        return SCRIPT_REPO
+
+    generated_repo = SCRIPT_REPO.parent / "workspace" / "git-merge-lab"
+    if (generated_repo / ".git").exists():
+        return generated_repo
+
+    raise RuntimeError(
+        "reset_lab.py must run inside the generated workspace/git-merge-lab repository.\n"
+        "From the distribution directory, run:\n"
+        "  python3 generate_lab.py\n"
+        "  cd workspace/git-merge-lab\n"
+        "  python3 tools/reset_lab.py"
+    )
+
+
+REPO = resolve_repo()
 
 
 def run(args: list[str], check: bool = False) -> subprocess.CompletedProcess[str]:
@@ -43,6 +63,10 @@ def remove_generated_dirs() -> None:
             shutil.rmtree(path)
 
 
+def status_short() -> str:
+    return run(["git", "status", "--short"], check=True).stdout.strip()
+
+
 def main() -> None:
     if merge_in_progress():
         run(["git", "merge", "--abort"], check=True)
@@ -54,9 +78,15 @@ def main() -> None:
 
     print("Lab reset complete.")
     print("  branch: main")
-    print("  working tree: clean")
+    status = status_short()
+    if status:
+        print("  tracked lab files: reset")
+        print("  untracked files remain:")
+        for line in status.splitlines():
+            print(f"    {line}")
+    else:
+        print("  working tree: clean")
 
 
 if __name__ == "__main__":
     main()
-

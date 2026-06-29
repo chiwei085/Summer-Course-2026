@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -11,6 +12,7 @@ ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT / "lab_source"
 WORKSPACE = ROOT / "workspace"
 LAB = WORKSPACE / "git-merge-lab"
+TEMP_LAB = WORKSPACE / ".git-merge-lab.tmp"
 
 AUTHOR_NAME = "Git Merge Tutor"
 AUTHOR_EMAIL = "git-merge-tutor@example.invalid"
@@ -175,16 +177,17 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8", newline="\n")
 
 
-def write_controller(header: str, source: str, test: str) -> None:
-    write_text(LAB / "include" / "velocity_controller.hpp", header)
-    write_text(LAB / "src" / "velocity_controller.cpp", source)
-    write_text(LAB / "tests" / "test_velocity_controller.cpp", test)
+def write_controller(repo: Path, header: str, source: str, test: str) -> None:
+    write_text(repo / "include" / "velocity_controller.hpp", header)
+    write_text(repo / "src" / "velocity_controller.cpp", source)
+    write_text(repo / "tests" / "test_velocity_controller.cpp", test)
 
 
-def commit(message: str, timestamp: str) -> None:
-    run(["git", "add", "."])
+def commit(repo: Path, message: str, timestamp: str) -> None:
+    run(["git", "add", "."], cwd=repo)
     run(
         ["git", "commit", "-m", message],
+        cwd=repo,
         env={
             "GIT_AUTHOR_DATE": timestamp,
             "GIT_COMMITTER_DATE": timestamp,
@@ -192,43 +195,66 @@ def commit(message: str, timestamp: str) -> None:
     )
 
 
-def smoke_check() -> None:
-    build_dir = LAB / ".verify_build" / "initial"
+def smoke_check(repo: Path) -> None:
+    build_dir = repo / ".verify_build" / "initial"
     if build_dir.exists():
         shutil.rmtree(build_dir)
-    run(["cmake", "-S", ".", "-B", str(build_dir)])
-    run(["cmake", "--build", str(build_dir)])
-    run(["ctest", "--test-dir", str(build_dir), "--output-on-failure"])
-    status = run(["git", "status", "--short"]).stdout.strip()
+    run(["cmake", "-S", ".", "-B", str(build_dir)], cwd=repo)
+    run(["cmake", "--build", str(build_dir)], cwd=repo)
+    run(["ctest", "--test-dir", str(build_dir), "--output-on-failure"], cwd=repo)
+    run([sys.executable, "verify_lab.py"], cwd=repo)
+    for name in [".verify_build", ".verify_checks"]:
+        path = repo / name
+        if path.exists():
+            shutil.rmtree(path)
+    status = run(["git", "status", "--short"], cwd=repo).stdout.strip()
     if status:
         raise RuntimeError(f"generated repository is not clean:\n{status}")
 
 
+def remove_path(path: Path) -> None:
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    elif path.exists():
+        path.unlink()
+
+
+def build_lab(repo: Path) -> None:
+    shutil.copytree(SOURCE, repo)
+
+    run(["git", "init"], cwd=repo)
+    run(["git", "checkout", "-b", "main"], cwd=repo)
+    run(["git", "config", "user.name", AUTHOR_NAME], cwd=repo)
+    run(["git", "config", "user.email", AUTHOR_EMAIL], cwd=repo)
+    run(["git", "config", "core.autocrlf", "false"], cwd=repo)
+    run(["git", "config", "core.eol", "lf"], cwd=repo)
+
+    write_controller(repo, HEADER_OLD, SRC_ANCESTOR, TEST_OLD)
+    commit(repo, "initial velocity controller", "2026-01-01T09:00:00+00:00")
+
+    run(["git", "checkout", "-b", "feature/safety-limit"], cwd=repo)
+    write_controller(repo, HEADER_OLD, SRC_FEATURE, TEST_OLD)
+    commit(repo, "feat: clamp controller output for safety", "2026-01-01T09:10:00+00:00")
+
+    run(["git", "checkout", "main"], cwd=repo)
+    write_controller(repo, HEADER_STRUCTURED, SRC_MAIN, TEST_STRUCTURED)
+    commit(repo, "refactor: introduce structured velocity types", "2026-01-01T09:20:00+00:00")
+
+    run(["git", "checkout", "main"], cwd=repo)
+    smoke_check(repo)
+
+
 def main() -> None:
-    if LAB.exists():
-        shutil.rmtree(LAB)
     WORKSPACE.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(SOURCE, LAB)
+    remove_path(TEMP_LAB)
 
-    run(["git", "init", "-b", "main"])
-    run(["git", "config", "user.name", AUTHOR_NAME])
-    run(["git", "config", "user.email", AUTHOR_EMAIL])
-    run(["git", "config", "core.autocrlf", "false"])
-    run(["git", "config", "core.eol", "lf"])
-
-    write_controller(HEADER_OLD, SRC_ANCESTOR, TEST_OLD)
-    commit("initial velocity controller", "2026-01-01T09:00:00+00:00")
-
-    run(["git", "switch", "-c", "feature/safety-limit"])
-    write_controller(HEADER_OLD, SRC_FEATURE, TEST_OLD)
-    commit("feat: clamp controller output for safety", "2026-01-01T09:10:00+00:00")
-
-    run(["git", "switch", "main"])
-    write_controller(HEADER_STRUCTURED, SRC_MAIN, TEST_STRUCTURED)
-    commit("refactor: introduce structured velocity types", "2026-01-01T09:20:00+00:00")
-
-    run(["git", "switch", "main"])
-    smoke_check()
+    try:
+        build_lab(TEMP_LAB)
+        remove_path(LAB)
+        TEMP_LAB.rename(LAB)
+    except Exception:
+        remove_path(TEMP_LAB)
+        raise
 
     print("Generated workspace/git-merge-lab")
     print()
@@ -239,4 +265,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

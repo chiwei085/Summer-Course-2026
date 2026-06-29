@@ -389,7 +389,7 @@ def print_results(results: list[CheckResult]) -> None:
     for result in results:
         print(f"{result.name}:")
         print("  PASS" if result.passed else "  FAIL")
-        if result.name == "Behavior tests" and result.detail:
+        if result.detail and (not result.passed or result.name == "Behavior tests"):
             for line in result.detail.splitlines():
                 print(f"  {line}")
 

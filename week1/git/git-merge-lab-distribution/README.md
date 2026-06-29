@@ -29,6 +29,9 @@ The goal is to merge both intentions: keep the new API and keep the safety limit
 - CMake
 - A C++17 compiler
 
+Re-running `python3 generate_lab.py` replaces `workspace/git-merge-lab` after a
+fresh copy has been generated and checked successfully.
+
 ## Reset
 
 From the generated repository:
@@ -37,5 +40,5 @@ From the generated repository:
 python3 tools/reset_lab.py
 ```
 
-This returns the lab to the clean pre-merge `main` state.
-
+This returns tracked lab files to the pre-merge `main` state. Untracked scratch
+files are preserved and reported.
