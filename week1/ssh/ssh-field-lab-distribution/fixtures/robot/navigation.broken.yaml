@@ -1,0 +1,4 @@
+robot: robot-01
+navigation:
+  max_speed: 8.0
+  planner: indoor-fast

@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+import sys
+
+import robot_service_lib as service
+
+
+def main() -> int:
+    if "navigation.service" not in sys.argv:
+        print("field lab journalctl wrapper only serves navigation.service", file=sys.stderr)
+        return 1
+    return service.print_logs()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

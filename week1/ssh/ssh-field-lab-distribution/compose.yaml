@@ -1,0 +1,33 @@
+services:
+  field-gateway:
+    build:
+      context: ./images/ssh-node
+    environment:
+      LAB_ROLE: gateway
+      LAB_USER: field
+      LAB_PASSWORD: field-lab
+    hostname: field-gateway
+    ports:
+      - "127.0.0.1:2222:22"
+    volumes:
+      - ./fixtures/host_keys/gateway:/lab/host_keys:ro
+    networks:
+      - field
+
+  robot-01:
+    build:
+      context: ./images/ssh-node
+    environment:
+      LAB_ROLE: robot
+      LAB_USER: operator
+      LAB_PASSWORD: robot-lab
+    hostname: robot-01
+    volumes:
+      - ./fixtures/host_keys/robot:/lab/host_keys:ro
+      - ./fixtures/robot:/lab/robot:ro
+    networks:
+      - field
+
+networks:
+  field:
+    name: ssh-field-lab-net
