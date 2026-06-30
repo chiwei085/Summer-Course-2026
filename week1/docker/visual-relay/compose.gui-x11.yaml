@@ -1,0 +1,36 @@
+services:
+  scout-station:
+    environment:
+      SDL_VIDEODRIVER: x11
+      DISPLAY: ${DISPLAY}
+      XAUTHORITY: /tmp/.visual-relay.Xauthority
+    user: "${UID:-1000}:${GID:-1000}"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - type: bind
+        source: /tmp/.X11-unix
+        target: /tmp/.X11-unix
+        read_only: true
+      - type: bind
+        source: ${XAUTHORITY}
+        target: /tmp/.visual-relay.Xauthority
+        read_only: true
+
+  catcher-station:
+    environment:
+      SDL_VIDEODRIVER: x11
+      DISPLAY: ${DISPLAY}
+      XAUTHORITY: /tmp/.visual-relay.Xauthority
+    user: "${UID:-1000}:${GID:-1000}"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - type: bind
+        source: /tmp/.X11-unix
+        target: /tmp/.X11-unix
+        read_only: true
+      - type: bind
+        source: ${XAUTHORITY}
+        target: /tmp/.visual-relay.Xauthority
+        read_only: true

@@ -1,0 +1,100 @@
+{
+  "name": "visual-relay-reference-scene",
+  "seed": 20260630,
+  "units": "meters",
+  "camera_resolution": [640, 360],
+  "belt": {
+    "length_m": 6.0,
+    "width_m": 0.82,
+    "nominal_velocity_mps": 0.62,
+    "roller_pitch_m": 0.22,
+    "texture": "textures/conveyor_belt.ppm"
+  },
+  "tunnel": {
+    "start_m": 2.4,
+    "end_m": 3.6,
+    "height_m": 1.15,
+    "width_m": 1.08,
+    "exposure_delta_ev": -1.4,
+    "inside_effects": {
+      "rotation_rad_per_m": 2.0,
+      "lane_jitter_m": 0.14,
+      "velocity_jitter_fraction": 0.06
+    },
+    "model": "models/conveyor_tunnel.obj"
+  },
+  "lighting": {
+    "directional": {"azimuth_deg": -35, "elevation_deg": 48, "intensity": 0.78},
+    "scout_point": {"position": [1.15, -0.72, 1.18], "intensity": 0.65},
+    "catcher_point": {"position": [4.96, 0.68, 1.08], "intensity": 0.92}
+  },
+  "robots": {
+    "scout": {
+      "model": "models/scout_camera_rig.obj",
+      "camera_pose": {"position": [1.0, -0.95, 1.35], "look_at": [2.18, 0.0, 0.0]},
+      "homography_asset": "scene/scout_homography.txt"
+    },
+    "catcher": {
+      "model": "models/catcher_arm_rig.obj",
+      "camera_pose": {"position": [5.1, 0.92, 1.25], "look_at": [3.82, 0.0, 0.0]},
+      "arm_base": [4.72, 0.54, 0.0],
+      "links_m": [0.72, 0.54],
+      "joint_limits_deg": [[-25, 145], [-155, 35]]
+    }
+  },
+  "fixtures": [
+    {"name": "left_guard_rail", "model": "models/conveyor_tunnel.obj#guard_rail_left"},
+    {"name": "right_guard_rail", "model": "models/conveyor_tunnel.obj#guard_rail_right"},
+    {"name": "warning_lights", "model": "models/conveyor_tunnel.obj#warning_lights"},
+    {"name": "accept_bin", "model": "models/catcher_arm_rig.obj#accept_bin"},
+    {"name": "reject_bin", "model": "models/catcher_arm_rig.obj#reject_bin"}
+  ],
+  "objects": [
+    {
+      "track_seed": 7001,
+      "name": "red-crate",
+      "model": "models/relay_objects.obj#red_crate",
+      "primary_color": "#dc4137",
+      "secondary_color": "#fbbf24",
+      "material": "painted-aluminum",
+      "texture": "textures/red_crate_marks.ppm",
+      "features": ["yellow stripe", "right-side scuff", "square silhouette"]
+    },
+    {
+      "track_seed": 7002,
+      "name": "blue-cylinder",
+      "model": "models/relay_objects.obj#blue_cylinder",
+      "primary_color": "#2563eb",
+      "secondary_color": "#7dd3fc",
+      "material": "brushed-metal",
+      "features": ["circular end cap", "bright rim", "specular highlight"]
+    },
+    {
+      "track_seed": 7003,
+      "name": "yellow-wedge",
+      "model": "models/relay_objects.obj#yellow_wedge",
+      "primary_color": "#eab308",
+      "secondary_color": "#ffffff",
+      "material": "rubberized",
+      "features": ["triangular top", "white diagonal mark", "low height"]
+    },
+    {
+      "track_seed": 7004,
+      "name": "green-gear",
+      "model": "models/relay_objects.obj#green_gear",
+      "primary_color": "#22c55e",
+      "secondary_color": "#14b8a6",
+      "material": "worn-polymer",
+      "features": ["toothed outline", "center hole", "edge wear"]
+    },
+    {
+      "track_seed": 7005,
+      "name": "white-tag",
+      "model": "models/relay_objects.obj#white_tag",
+      "primary_color": "#e2e8f0",
+      "secondary_color": "#3b82f6",
+      "material": "matte-ceramic",
+      "features": ["blue tag", "high contrast", "flip-sensitive mark"]
+    }
+  ]
+}

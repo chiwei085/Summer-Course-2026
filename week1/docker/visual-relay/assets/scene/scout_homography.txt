@@ -1,0 +1,6 @@
+# Conveyor-plane homography used by the reference Scout workstation.
+# Pixel coordinates are normalized to the 640x360 camera frame.
+# This is teaching calibration data, not simulator ground truth.
+1.742 0.031 -0.218
+-0.044 1.318 -0.407
+0.002 0.006 1.000

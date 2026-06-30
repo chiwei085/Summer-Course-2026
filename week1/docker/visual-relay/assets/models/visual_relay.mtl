@@ -1,0 +1,63 @@
+newmtl belt_rubber
+Kd 0.20 0.23 0.28
+Ks 0.05 0.06 0.07
+Ns 18
+
+newmtl brushed_rail
+Kd 0.55 0.62 0.70
+Ks 0.35 0.38 0.40
+Ns 64
+
+newmtl tunnel_dark
+Kd 0.08 0.10 0.14
+Ks 0.12 0.14 0.18
+Ns 28
+
+newmtl warning_red
+Kd 0.95 0.20 0.18
+Ke 0.55 0.05 0.03
+
+newmtl warning_amber
+Kd 1.00 0.72 0.08
+Ke 0.40 0.22 0.02
+
+newmtl camera_blue
+Kd 0.05 0.55 0.82
+Ks 0.20 0.28 0.34
+Ns 48
+
+newmtl arm_light
+Kd 0.88 0.92 0.96
+Ks 0.32 0.32 0.36
+Ns 72
+
+newmtl bin_accept
+Kd 0.08 0.48 0.24
+
+newmtl bin_reject
+Kd 0.72 0.10 0.10
+
+newmtl red_crate
+Kd 0.86 0.25 0.22
+Ks 0.18 0.12 0.10
+Ns 36
+
+newmtl blue_cylinder
+Kd 0.15 0.39 0.92
+Ks 0.52 0.62 0.75
+Ns 96
+
+newmtl yellow_wedge
+Kd 0.92 0.70 0.03
+Ks 0.12 0.11 0.08
+Ns 20
+
+newmtl green_gear
+Kd 0.13 0.77 0.37
+Ks 0.12 0.24 0.18
+Ns 30
+
+newmtl white_tag
+Kd 0.88 0.91 0.95
+Ks 0.08 0.10 0.12
+Ns 18
