@@ -1,10 +1,11 @@
 #include "visual_relay/gui.hpp"
 
 #include <algorithm>
-#include <array>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <numbers>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -19,7 +20,7 @@ namespace visual_relay
 namespace
 {
 
-constexpr float kPi = 3.14159265358979323846F;
+constexpr float kPi = std::numbers::pi_v<float>;
 
 std::vector<std::string_view> split(std::string_view text, char separator) {
     std::vector<std::string_view> parts;
@@ -56,6 +57,24 @@ std::uint64_t parse_u64(std::string_view value, std::uint64_t fallback = 0) {
     const auto* end = value.data() + value.size();
     const auto result = std::from_chars(begin, end, out);
     return result.ec == std::errc{} ? out : fallback;
+}
+
+ProjectedObject parse_projection(std::string_view encoded) {
+    const auto fields = split(encoded, ',');
+    ProjectedObject projection;
+    if (fields.size() < 9) {
+        return projection;
+    }
+    projection.track_id = parse_u64(fields[0]);
+    projection.center_x_px = parse_float(fields[1]);
+    projection.center_y_px = parse_float(fields[2]);
+    projection.width_px = parse_float(fields[3]);
+    projection.height_px = parse_float(fields[4]);
+    projection.depth = parse_float(fields[5]);
+    projection.score = parse_float(fields[6]);
+    projection.target = parse_u64(fields[7]) != 0;
+    projection.visible = parse_u64(fields[8], 1) != 0;
+    return projection;
 }
 
 #if VISUAL_RELAY_HAS_SDL3
@@ -123,13 +142,11 @@ Color object_color(std::string_view label, bool secondary = false) {
     }
     if (label.find("blue") != std::string_view::npos ||
         label.find("cylinder") != std::string_view::npos) {
-        return secondary ? Color{125, 211, 252, 255}
-                         : Color{37, 99, 235, 255};
+        return secondary ? Color{125, 211, 252, 255} : Color{37, 99, 235, 255};
     }
     if (label.find("yellow") != std::string_view::npos ||
         label.find("wedge") != std::string_view::npos) {
-        return secondary ? Color{250, 250, 250, 255}
-                         : Color{234, 179, 8, 255};
+        return secondary ? Color{250, 250, 250, 255} : Color{234, 179, 8, 255};
     }
     if (label.find("green") != std::string_view::npos ||
         label.find("gear") != std::string_view::npos) {
@@ -137,17 +154,15 @@ Color object_color(std::string_view label, bool secondary = false) {
     }
     if (label.find("white") != std::string_view::npos ||
         label.find("tag") != std::string_view::npos) {
-        return secondary ? Color{59, 130, 246, 255}
-                         : Color{226, 232, 240, 255};
+        return secondary ? Color{59, 130, 246, 255} : Color{226, 232, 240, 255};
     }
     return secondary ? Color{251, 146, 60, 255} : Color{168, 85, 247, 255};
 }
 
 float world_to_screen_x(float belt_position_m, float world_min, float world_max,
                         float left, float width) {
-    const float u =
-        std::clamp((belt_position_m - world_min) / (world_max - world_min),
-                   0.0F, 1.0F);
+    const float u = std::clamp(
+        (belt_position_m - world_min) / (world_max - world_min), 0.0F, 1.0F);
     return left + u * width;
 }
 
@@ -156,8 +171,8 @@ void draw_belt(SDL_Renderer* renderer, float x, float y, float w, float h,
     fill_rect(renderer, x, y, w, h, {68, 76, 89, 255});
     fill_rect(renderer, x, y + 12.0F, w, h - 24.0F, {50, 57, 68, 255});
     for (int i = -2; i < 24; ++i) {
-        const float stripe = x + std::fmod(phase * 42.0F, 42.0F) +
-                             static_cast<float>(i) * 42.0F;
+        const float stripe =
+            x + std::fmod(phase * 42.0F, 42.0F) + static_cast<float>(i) * 42.0F;
         line(renderer, stripe, y + 5.0F, stripe + 32.0F, y + h - 5.0F,
              {94, 108, 126, 255});
     }
@@ -175,8 +190,7 @@ void draw_belt(SDL_Renderer* renderer, float x, float y, float w, float h,
 void draw_tunnel(SDL_Renderer* renderer, float x, float y, float w, float h) {
     fill_rect(renderer, x - 16.0F, y + 10.0F, 16.0F, h - 20.0F,
               {31, 41, 55, 255});
-    fill_rect(renderer, x + w, y + 10.0F, 16.0F, h - 20.0F,
-              {31, 41, 55, 255});
+    fill_rect(renderer, x + w, y + 10.0F, 16.0F, h - 20.0F, {31, 41, 55, 255});
     fill_rect(renderer, x - 18.0F, y - 8.0F, w + 36.0F, 34.0F,
               {55, 65, 81, 255});
     fill_rect(renderer, x, y + 26.0F, w, h - 52.0F, {15, 23, 42, 255});
@@ -216,19 +230,18 @@ void draw_object(SDL_Renderer* renderer, const SceneObject& obj, float sx,
     }
     else if (obj.label.find("wedge") != std::string::npos) {
         const SDL_FColor primary_color{primary.r / 255.0F, primary.g / 255.0F,
-                                       primary.b / 255.0F,
-                                       primary.a / 255.0F};
-        const SDL_FColor secondary_color{secondary.r / 255.0F,
-                                         secondary.g / 255.0F,
-                                         secondary.b / 255.0F,
-                                         secondary.a / 255.0F};
+                                       primary.b / 255.0F, primary.a / 255.0F};
+        const SDL_FColor secondary_color{
+            secondary.r / 255.0F, secondary.g / 255.0F, secondary.b / 255.0F,
+            secondary.a / 255.0F};
         std::array<SDL_Vertex, 3> verts{
-            SDL_Vertex{{sx - size * 0.50F, sy + size * 0.40F}, primary_color,
-                       {0, 0}},
-            SDL_Vertex{{sx + size * 0.48F, sy + size * 0.36F}, primary_color,
-                       {0, 0}},
+            SDL_Vertex{
+                {sx - size * 0.50F, sy + size * 0.40F}, primary_color, {0, 0}},
+            SDL_Vertex{
+                {sx + size * 0.48F, sy + size * 0.36F}, primary_color, {0, 0}},
             SDL_Vertex{{sx + size * 0.12F, sy - size * 0.46F},
-                       secondary_color, {0, 0}},
+                       secondary_color,
+                       {0, 0}},
         };
         SDL_RenderGeometry(renderer, nullptr, verts.data(),
                            static_cast<int>(verts.size()), nullptr, 0);
@@ -237,17 +250,15 @@ void draw_object(SDL_Renderer* renderer, const SceneObject& obj, float sx,
         fill_rect(renderer, x, y, size, size, primary);
         fill_rect(renderer, x + 8.0F * scale, y + 7.0F * scale,
                   size - 16.0F * scale, 6.0F * scale, secondary);
-        fill_rect(renderer, x + size * 0.58F, y + size * 0.35F,
-                  8.0F * scale, size * 0.46F, secondary);
+        fill_rect(renderer, x + size * 0.58F, y + size * 0.35F, 8.0F * scale,
+                  size * 0.46F, secondary);
     }
 
-    const Color box = obj.target ? Color{34, 211, 238, 255}
-                                 : Color{226, 232, 240, 255};
-    stroke_rect(renderer, x - 5.0F, y - 5.0F, size + 10.0F, size + 10.0F,
-                box);
+    const Color box =
+        obj.target ? Color{34, 211, 238, 255} : Color{226, 232, 240, 255};
+    stroke_rect(renderer, x - 5.0F, y - 5.0F, size + 10.0F, size + 10.0F, box);
     debug_text(renderer, x - 5.0F, y - 21.0F,
-               (obj.target ? "T" : "C") + std::to_string(obj.track_id),
-               box);
+               (obj.target ? "T" : "C") + std::to_string(obj.track_id), box);
     const float score = catcher_view ? obj.match_score : obj.confidence;
     draw_gauge(renderer, x - 5.0F, y + size + 9.0F, size + 10.0F, score, box);
 }
@@ -275,8 +286,8 @@ void draw_arm(SDL_Renderer* renderer, float base_x, float base_y, float joint_a,
     const float wrist_y = elbow_y - std::sin(joint_a + joint_b) * l2;
     fill_circle(renderer, base_x, base_y, 24.0F, {100, 116, 139, 255});
     line(renderer, base_x, base_y, elbow_x, elbow_y, {248, 250, 252, 255});
-    line(renderer, base_x + 1.0F, base_y + 1.0F, elbow_x + 1.0F,
-         elbow_y + 1.0F, {248, 250, 252, 255});
+    line(renderer, base_x + 1.0F, base_y + 1.0F, elbow_x + 1.0F, elbow_y + 1.0F,
+         {248, 250, 252, 255});
     fill_circle(renderer, elbow_x, elbow_y, 14.0F, {14, 165, 233, 255});
     line(renderer, elbow_x, elbow_y, wrist_x, wrist_y, {250, 204, 21, 255});
     line(renderer, elbow_x + 1.0F, elbow_y + 1.0F, wrist_x + 1.0F,
@@ -290,10 +301,14 @@ void draw_status_panel(SDL_Renderer* renderer, const CameraFrame& frame,
                        const std::string& status, float x, float y, float w) {
     fill_rect(renderer, x, y, w, 140.0F, {17, 24, 39, 235});
     stroke_rect(renderer, x, y, w, 140.0F, {71, 85, 105, 255});
-    debug_text(renderer, x + 12.0F, y + 12.0F,
-               frame.view == StationView::scout ? "SCOUT VISION"
-                                                 : "CATCHER MATCHING",
-               {248, 250, 252, 255});
+    std::string title = "SIMULATOR WORLD";
+    if (frame.view == StationView::scout) {
+        title = "SCOUT CAMERA";
+    }
+    else if (frame.view == StationView::catcher) {
+        title = "CATCHER CAMERA";
+    }
+    debug_text(renderer, x + 12.0F, y + 12.0F, title, {248, 250, 252, 255});
     debug_text(renderer, x + 12.0F, y + 31.0F,
                "TCP " + frame.tcp_state + "   UDP " + frame.udp_state,
                {125, 211, 252, 255});
@@ -309,8 +324,85 @@ void draw_status_panel(SDL_Renderer* renderer, const CameraFrame& frame,
     debug_text(renderer, x + 12.0F, y + 88.0F, "descriptor");
     draw_gauge(renderer, x + 94.0F, y + 91.0F, w - 112.0F,
                frame.descriptor_quality, {34, 197, 94, 255});
-    debug_text(renderer, x + 12.0F, y + 112.0F, "ready " + status,
-               {148, 163, 184, 255});
+    std::string ready = "ready " + status;
+    if (ready.size() > 76U) {
+        ready.resize(73U);
+        ready += "...";
+    }
+    debug_text(renderer, x + 12.0F, y + 112.0F, ready, {148, 163, 184, 255});
+}
+
+void render_camera_pixels(SDL_Renderer* renderer, SDL_Texture*& texture,
+                          int& texture_width, int& texture_height,
+                          const CameraFrame& frame, int width, int height) {
+    fill_rect(renderer, 0.0F, 0.0F, static_cast<float>(width),
+              static_cast<float>(height), {8, 13, 24, 255});
+
+    const float panel_h = 150.0F;
+    const float margin = 28.0F;
+    const float available_w = static_cast<float>(width) - margin * 2.0F;
+    const float available_h =
+        static_cast<float>(height) - panel_h - margin * 2.0F;
+    const float image_aspect = static_cast<float>(frame.image_width) /
+                               static_cast<float>(frame.image_height);
+    float draw_w = available_w;
+    float draw_h = draw_w / image_aspect;
+    if (draw_h > available_h) {
+        draw_h = available_h;
+        draw_w = draw_h * image_aspect;
+    }
+    const float draw_x = (static_cast<float>(width) - draw_w) * 0.5F;
+    const float draw_y = margin + (available_h - draw_h) * 0.5F;
+
+    if (texture != nullptr && (texture_width != frame.image_width ||
+                               texture_height != frame.image_height)) {
+        SDL_DestroyTexture(texture);
+        texture = nullptr;
+        texture_width = 0;
+        texture_height = 0;
+    }
+    if (texture == nullptr) {
+        texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24,
+                                    SDL_TEXTUREACCESS_STREAMING,
+                                    frame.image_width, frame.image_height);
+        if (texture != nullptr) {
+            SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+            texture_width = frame.image_width;
+            texture_height = frame.image_height;
+        }
+    }
+    if (texture != nullptr) {
+        SDL_UpdateTexture(texture, nullptr, frame.rgb_pixels.data(),
+                          frame.image_width * 3);
+        const SDL_FRect dest{draw_x, draw_y, draw_w, draw_h};
+        SDL_RenderTexture(renderer, texture, nullptr, &dest);
+    }
+    stroke_rect(renderer, draw_x, draw_y, draw_w, draw_h, {71, 85, 105, 255});
+
+    for (const auto& obj : frame.projections) {
+        if (!obj.visible) {
+            continue;
+        }
+        const Color color =
+            obj.target ? Color{34, 211, 238, 255} : Color{226, 232, 240, 255};
+        const float sx =
+            draw_x + (obj.center_x_px / float(frame.image_width)) * draw_w;
+        const float sy =
+            draw_y + (obj.center_y_px / float(frame.image_height)) * draw_h;
+        const float box_w = (obj.width_px / float(frame.image_width)) * draw_w;
+        const float box_h =
+            (obj.height_px / float(frame.image_height)) * draw_h;
+        stroke_rect(renderer, sx - box_w * 0.5F, sy - box_h * 0.5F, box_w,
+                    box_h, color);
+        debug_text(renderer, sx - box_w * 0.5F, sy - box_h * 0.5F - 16.0F,
+                   (obj.target ? "T" : "C") + std::to_string(obj.track_id),
+                   color);
+    }
+
+    draw_status_panel(
+        renderer, frame, status, margin,
+        static_cast<float>(height) - panel_h + 10.0F,
+        std::min(560.0F, static_cast<float>(width) - margin * 2.0F));
 }
 
 void render_scene(SDL_Renderer* renderer, const CameraFrame& frame,
@@ -328,22 +420,37 @@ void render_scene(SDL_Renderer* renderer, const CameraFrame& frame,
     const float belt_w = static_cast<float>(width) - margin * 2.0F;
     draw_belt(renderer, margin, belt_y, belt_w, belt_h, frame.belt_phase);
 
-    const float tunnel_x =
-        frame.view == StationView::scout ? margin + belt_w * 0.66F
-                                         : margin + belt_w * 0.18F;
+    float world_min = 0.0F;
+    float world_max = 6.0F;
+    float tunnel_x = margin + belt_w * 0.40F;
+    if (frame.view == StationView::scout) {
+        world_max = 3.7F;
+        tunnel_x = margin + belt_w * 0.66F;
+    }
+    else if (frame.view == StationView::catcher) {
+        world_min = 3.4F;
+        tunnel_x = margin + belt_w * 0.18F;
+    }
     draw_tunnel(renderer, tunnel_x, belt_y - 54.0F, belt_w * 0.22F,
                 belt_h + 108.0F);
 
-    if (frame.view == StationView::scout) {
+    if (frame.view == StationView::simulator) {
         draw_camera_rig(renderer, margin + 76.0F, belt_y - 92.0F, true);
-        fill_rect(renderer, tunnel_x - 110.0F, belt_y + belt_h + 42.0F,
-                  92.0F, 34.0F, {30, 64, 175, 255});
+        draw_camera_rig(renderer, static_cast<float>(width) - margin - 78.0F,
+                        belt_y - 92.0F, false);
+        draw_arm(renderer, static_cast<float>(width) - 214.0F,
+                 belt_y + belt_h + 76.0F, frame.arm_joint_a_rad,
+                 frame.arm_joint_b_rad);
+        debug_text(renderer, tunnel_x - 26.0F, belt_y - 78.0F, "HIDDEN TUNNEL",
+                   {250, 204, 21, 255});
+    }
+    else if (frame.view == StationView::scout) {
+        fill_rect(renderer, tunnel_x - 110.0F, belt_y + belt_h + 42.0F, 92.0F,
+                  34.0F, {30, 64, 175, 255});
         debug_text(renderer, tunnel_x - 101.0F, belt_y + belt_h + 53.0F,
                    "ROI LOCK", {248, 250, 252, 255});
     }
     else {
-        draw_camera_rig(renderer, static_cast<float>(width) - margin - 78.0F,
-                        belt_y - 92.0F, false);
         draw_arm(renderer, static_cast<float>(width) - 214.0F,
                  belt_y + belt_h + 76.0F, frame.arm_joint_a_rad,
                  frame.arm_joint_b_rad);
@@ -357,32 +464,33 @@ void render_scene(SDL_Renderer* renderer, const CameraFrame& frame,
                    "REJECT BIN");
     }
 
-    const float world_min = frame.view == StationView::scout ? 0.0F : 3.4F;
-    const float world_max = frame.view == StationView::scout ? 3.7F : 6.0F;
     for (const auto& obj : frame.objects) {
         if (!obj.visible) {
             continue;
         }
-        const float sx = world_to_screen_x(obj.belt_position_m, world_min,
-                                           world_max, margin + 20.0F,
-                                           belt_w - 40.0F);
+        const float sx =
+            world_to_screen_x(obj.belt_position_m, world_min, world_max,
+                              margin + 20.0F, belt_w - 40.0F);
         const float sy = belt_y + belt_h * 0.52F + obj.lane_offset_m * 58.0F;
         draw_object(renderer, obj, sx, sy, 1.0F,
                     frame.view == StationView::catcher);
     }
 
-    if (frame.view == StationView::catcher) {
+    if (frame.view == StationView::catcher ||
+        frame.view == StationView::simulator) {
         const float intercept_x = margin + belt_w * 0.63F;
         line(renderer, intercept_x - 18.0F, belt_y - 28.0F, intercept_x + 18.0F,
              belt_y + 8.0F, {34, 211, 238, 255});
         line(renderer, intercept_x + 18.0F, belt_y - 28.0F, intercept_x - 18.0F,
              belt_y + 8.0F, {34, 211, 238, 255});
-        debug_text(renderer, intercept_x - 42.0F, belt_y - 48.0F,
-                   "INTERCEPT", {34, 211, 238, 255});
+        debug_text(renderer, intercept_x - 42.0F, belt_y - 48.0F, "INTERCEPT",
+                   {34, 211, 238, 255});
     }
 
-    draw_status_panel(renderer, frame, status, margin, 24.0F,
-                      std::min(560.0F, static_cast<float>(width) - 88.0F));
+    if (frame.view != StationView::simulator) {
+        draw_status_panel(renderer, frame, status, margin, 24.0F,
+                          std::min(560.0F, static_cast<float>(width) - 88.0F));
+    }
 }
 #endif
 
@@ -393,8 +501,15 @@ CameraFrame parse_camera_frame(std::string_view payload, StationView fallback) {
     frame.view = fallback;
     for (const auto token : split(payload, '|')) {
         if (const auto value = value_after(token, "view"); !value.empty()) {
-            frame.view = value == "catcher" ? StationView::catcher
-                                            : StationView::scout;
+            if (value == "simulator") {
+                frame.view = StationView::simulator;
+            }
+            else if (value == "catcher") {
+                frame.view = StationView::catcher;
+            }
+            else {
+                frame.view = StationView::scout;
+            }
         }
         else if (const auto value = value_after(token, "frame");
                  !value.empty()) {
@@ -458,8 +573,159 @@ CameraFrame parse_camera_frame(std::string_view payload, StationView fallback) {
                 frame.objects.push_back(std::move(obj));
             }
         }
+        else if (const auto value = value_after(token, "projections");
+                 !value.empty()) {
+            for (const auto encoded_projection : split(value, ';')) {
+                if (!encoded_projection.empty()) {
+                    frame.projections.push_back(
+                        parse_projection(encoded_projection));
+                }
+            }
+        }
     }
     return frame;
+}
+
+namespace
+{
+
+// Copies everything except the receiver's accumulated pixel buffer, so a
+// metadata-bearing chunk can refresh telemetry without disturbing rows that
+// arrived in earlier (or haven't yet arrived in later) chunks.
+void copy_metadata_fields(CameraFrame& dest, const CameraFrame& src) {
+    dest.view = src.view;
+    dest.sequence = src.sequence;
+    dest.belt_phase = src.belt_phase;
+    dest.fps = src.fps;
+    dest.latency_ms = src.latency_ms;
+    dest.predicted_eta_s = src.predicted_eta_s;
+    dest.descriptor_quality = src.descriptor_quality;
+    dest.arm_joint_a_rad = src.arm_joint_a_rad;
+    dest.arm_joint_b_rad = src.arm_joint_b_rad;
+    dest.tcp_state = src.tcp_state;
+    dest.udp_state = src.udp_state;
+    dest.handoff_state = src.handoff_state;
+    dest.objects = src.objects;
+    dest.projections = src.projections;
+}
+
+}  // namespace
+
+bool apply_camera_chunk(CameraFrame& frame,
+                        std::span<const std::uint8_t> payload) {
+    CameraChunkReceiver receiver(frame);
+    if (!receiver.apply(payload)) {
+        return false;
+    }
+    frame = receiver.frame();
+    return true;
+}
+
+CameraChunkReceiver::CameraChunkReceiver(CameraFrame initial)
+    : frame_(std::move(initial)),
+      sequence_(frame_.sequence),
+      have_sequence_(frame_.sequence != 0) {
+    if (frame_.image_height > 0) {
+        received_rows_.assign(static_cast<std::size_t>(frame_.image_height),
+                              false);
+    }
+}
+
+const CameraFrame& CameraChunkReceiver::frame() const {
+    return frame_;
+}
+
+bool CameraChunkReceiver::frame_complete() const {
+    return !received_rows_.empty() &&
+           std::all_of(received_rows_.begin(), received_rows_.end(),
+                       [](bool row) { return row; });
+}
+
+bool CameraChunkReceiver::apply(std::span<const std::uint8_t> payload) {
+    constexpr std::string_view magic = "VRRGBC\n";
+    if (payload.size() < magic.size() ||
+        std::memcmp(payload.data(), magic.data(), magic.size()) != 0) {
+        const auto* text = reinterpret_cast<const char*>(payload.data());
+        copy_metadata_fields(
+            frame_, parse_camera_frame(std::string_view(text, payload.size()),
+                                       frame_.view));
+        return true;
+    }
+
+    std::size_t cursor = magic.size();
+    auto read_line = [&]() -> std::string_view {
+        const std::size_t begin = cursor;
+        while (cursor < payload.size() && payload[cursor] != '\n') {
+            ++cursor;
+        }
+        const std::size_t end = cursor;
+        if (cursor < payload.size()) {
+            ++cursor;
+        }
+        const auto* text =
+            reinterpret_cast<const char*>(payload.data() + begin);
+        return {text, end - begin};
+    };
+
+    const auto frame_seq = parse_u64(read_line(), 0);
+    const int width = static_cast<int>(parse_u64(read_line(), 0));
+    const int height = static_cast<int>(parse_u64(read_line(), 0));
+    const auto row_start = static_cast<std::size_t>(parse_u64(read_line(), 0));
+    const auto row_count = static_cast<std::size_t>(parse_u64(read_line(), 0));
+    const auto metadata_size =
+        static_cast<std::size_t>(parse_u64(read_line(), 0));
+
+    if (width <= 0 || height <= 0 || row_count == 0) {
+        return false;
+    }
+    if (have_sequence_ && frame_seq < sequence_) {
+        return false;
+    }
+    if (!have_sequence_ || frame_seq > sequence_ ||
+        frame_.image_width != width || frame_.image_height != height) {
+        const bool dimensions_changed =
+            frame_.image_width != width || frame_.image_height != height;
+        have_sequence_ = true;
+        sequence_ = frame_seq;
+        frame_.image_width = width;
+        frame_.image_height = height;
+        if (dimensions_changed || frame_.rgb_pixels.empty()) {
+            frame_.rgb_pixels.assign(static_cast<std::size_t>(width) *
+                                         static_cast<std::size_t>(height) * 3U,
+                                     0U);
+        }
+        received_rows_.assign(static_cast<std::size_t>(height), false);
+    }
+
+    if (cursor + metadata_size > payload.size()) {
+        return false;
+    }
+    if (metadata_size > 0) {
+        const auto* metadata =
+            reinterpret_cast<const char*>(payload.data() + cursor);
+        copy_metadata_fields(
+            frame_,
+            parse_camera_frame(std::string_view(metadata, metadata_size),
+                               frame_.view));
+    }
+    cursor += metadata_size;
+
+    const std::size_t row_bytes = static_cast<std::size_t>(width) * 3U;
+    const std::size_t pixel_bytes = row_count * row_bytes;
+    if (row_start + row_count > static_cast<std::size_t>(height) ||
+        cursor + pixel_bytes > payload.size()) {
+        return false;
+    }
+    const std::size_t dest_offset = row_start * row_bytes;
+    std::copy(
+        payload.begin() + static_cast<std::ptrdiff_t>(cursor),
+        payload.begin() + static_cast<std::ptrdiff_t>(cursor + pixel_bytes),
+        frame_.rgb_pixels.begin() + static_cast<std::ptrdiff_t>(dest_offset));
+    for (std::size_t row = row_start; row < row_start + row_count; ++row) {
+        received_rows_[row] = true;
+    }
+    frame_.sequence = frame_seq;
+    return true;
 }
 
 GuiWindow::GuiWindow(std::string title) : title_(std::move(title)) {
@@ -468,12 +734,27 @@ GuiWindow::GuiWindow(std::string title) : title_(std::move(title)) {
         log_line(title_, std::string("SDL init failed: ") + SDL_GetError());
         return;
     }
-    window_ = SDL_CreateWindow(title_.c_str(), 1120, 680, SDL_WINDOW_RESIZABLE);
+    int window_width = 900;
+    int window_height = 500;
+    int window_x = 64;
+    int window_y = 80;
+    if (title_.find("Scout") != std::string::npos) {
+        window_height = 430;
+        window_y = 610;
+    }
+    else if (title_.find("Catcher") != std::string::npos) {
+        window_x = 980;
+        window_height = 500;
+    }
+    window_ = SDL_CreateWindow(title_.c_str(), window_width, window_height,
+                               SDL_WINDOW_RESIZABLE);
     if (window_ == nullptr) {
         log_line(title_,
                  std::string("window creation failed: ") + SDL_GetError());
         return;
     }
+    SDL_SetWindowPosition(static_cast<SDL_Window*>(window_), window_x,
+                          window_y);
     renderer_ = SDL_CreateRenderer(static_cast<SDL_Window*>(window_), nullptr);
     if (renderer_ == nullptr) {
         log_line(title_,
@@ -489,6 +770,9 @@ GuiWindow::GuiWindow(std::string title) : title_(std::move(title)) {
 GuiWindow::~GuiWindow() {
 #if VISUAL_RELAY_HAS_SDL3
     if (renderer_ != nullptr) {
+        if (camera_texture_ != nullptr) {
+            SDL_DestroyTexture(static_cast<SDL_Texture*>(camera_texture_));
+        }
         SDL_DestroyRenderer(static_cast<SDL_Renderer*>(renderer_));
     }
     if (window_ != nullptr) {
@@ -518,10 +802,16 @@ bool GuiWindow::poll(StopState& stop, const CameraFrame& frame,
     int height = 680;
     auto* renderer = static_cast<SDL_Renderer*>(renderer_);
     SDL_GetRenderOutputSize(renderer, &width, &height);
-    render_scene(renderer, frame, status, width, height);
-    SDL_SetWindowTitle(static_cast<SDL_Window*>(window_),
-                       (title_ + " | " + frame.handoff_state + " | " + status)
-                           .c_str());
+    if (frame.view == StationView::simulator || frame.rgb_pixels.empty()) {
+        render_scene(renderer, frame, status, width, height);
+    }
+    else {
+        auto* texture = static_cast<SDL_Texture*>(camera_texture_);
+        render_camera_pixels(renderer, texture, camera_texture_width_,
+                             camera_texture_height_, frame, width, height);
+        camera_texture_ = texture;
+    }
+    SDL_SetWindowTitle(static_cast<SDL_Window*>(window_), title_.c_str());
     SDL_RenderPresent(renderer);
     return !stop.stop_requested();
 #else

@@ -24,13 +24,14 @@ if(VISUAL_RELAY_BUILD_APPS)
     find_package(Threads REQUIRED)
 
     add_library(visual_relay_common
+        src/common/scene.cpp
         src/common/service.cpp
     )
-    target_include_directories(visual_relay_common PUBLIC include)
+    target_include_directories(visual_relay_common PUBLIC include third_party)
     target_link_libraries(visual_relay_common PUBLIC visual_relay_protocol)
     target_compile_options(visual_relay_common PRIVATE -Wall -Wextra -Wpedantic)
 
-    if(VISUAL_RELAY_BUILD_SCOUT OR VISUAL_RELAY_BUILD_CATCHER)
+    if(VISUAL_RELAY_BUILD_SIMULATOR OR VISUAL_RELAY_BUILD_SCOUT OR VISUAL_RELAY_BUILD_CATCHER)
         find_package(SDL3 QUIET CONFIG)
         if(VISUAL_RELAY_REQUIRE_GUI AND NOT SDL3_FOUND)
             message(FATAL_ERROR "SDL3 is required for Visual Relay GUI apps. Build through Docker or set VISUAL_RELAY_REQUIRE_GUI=OFF for protocol-only local checks.")
@@ -54,6 +55,7 @@ if(VISUAL_RELAY_BUILD_APPS)
 
     if(VISUAL_RELAY_BUILD_SIMULATOR)
         add_visual_relay_service(relay_simulator relay-simulator src/relay_simulator/relay_simulator.cpp)
+        target_link_libraries(relay_simulator PRIVATE visual_relay_gui)
     endif()
     if(VISUAL_RELAY_BUILD_SCOUT)
         add_visual_relay_service(scout_station scout-station src/scout_station/scout_station.cpp)
@@ -62,6 +64,16 @@ if(VISUAL_RELAY_BUILD_APPS)
     if(VISUAL_RELAY_BUILD_CATCHER)
         add_visual_relay_service(catcher_station catcher-station src/catcher_station/catcher_station.cpp)
         target_link_libraries(catcher_station PRIVATE visual_relay_gui)
+    endif()
+
+    if(VISUAL_RELAY_BUILD_TESTS)
+        enable_testing()
+        add_executable(test_scene tests/test_scene.cpp)
+        target_link_libraries(test_scene PRIVATE visual_relay_gui visual_relay_common)
+        target_compile_options(test_scene PRIVATE -Wall -Wextra -Wpedantic)
+        add_test(NAME scene COMMAND test_scene)
+        set_tests_properties(scene PROPERTIES
+            ENVIRONMENT "VISUAL_RELAY_ASSET_DIR=${CMAKE_CURRENT_SOURCE_DIR}/assets")
     endif()
 endif()
 

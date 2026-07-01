@@ -42,6 +42,7 @@ RUN --mount=type=cache,target=/ccache \
 FROM base-build AS source-base
 WORKDIR /src
 COPY CMakeLists.txt ./
+COPY third_party ./third_party
 COPY include ./include
 COPY src/protocol ./src/protocol
 COPY src/common ./src/common
@@ -50,17 +51,19 @@ COPY assets ./assets
 FROM dependencies AS gui-source-base
 WORKDIR /src
 COPY CMakeLists.txt ./
+COPY third_party ./third_party
 COPY include ./include
 COPY src/protocol ./src/protocol
 COPY src/common ./src/common
 COPY assets ./assets
 
-FROM source-base AS simulator-build
+FROM gui-source-base AS simulator-build
 COPY src/relay_simulator ./src/relay_simulator
 RUN --mount=type=cache,target=/ccache \
     --mount=type=cache,target=/build/visual-relay-simulator \
     cmake -S /src -B /build/visual-relay-simulator -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_PREFIX_PATH=/opt/deps \
         -DCMAKE_INSTALL_PREFIX=/opt/visual-relay \
         -DVISUAL_RELAY_BUILD_TESTS=OFF \
         -DVISUAL_RELAY_BUILD_SCOUT=OFF \
@@ -99,6 +102,7 @@ RUN --mount=type=cache,target=/ccache \
 FROM base-build AS test
 WORKDIR /src
 COPY CMakeLists.txt ./
+COPY third_party ./third_party
 COPY include ./include
 COPY src/protocol ./src/protocol
 COPY src/common ./src/common
@@ -154,7 +158,29 @@ ENV LD_LIBRARY_PATH=/opt/deps/lib \
 USER visualrelay:visualrelay
 
 FROM runtime-base AS simulator-runtime
+USER root
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 \
+        libegl1 \
+        libwayland-client0 \
+        libx11-6 \
+        libxext6 \
+        libxrandr2 \
+        libxcursor1 \
+        libxi6 \
+        libxkbcommon0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /opt/deps/lib
+COPY --from=dependencies /opt/deps/lib/libSDL3.so /opt/deps/lib/
+COPY --from=dependencies /opt/deps/lib/libSDL3.so.0 /opt/deps/lib/
+COPY --from=dependencies /opt/deps/lib/libSDL3.so.0.2.0 /opt/deps/lib/
 COPY --from=simulator-build /install/opt/visual-relay /opt/visual-relay
+ENV LD_LIBRARY_PATH=/opt/deps/lib \
+    XDG_CACHE_HOME=/tmp/visual-relay-cache \
+    MESA_SHADER_CACHE_DIR=/tmp/visual-relay-cache/mesa
+USER visualrelay:visualrelay
 ENTRYPOINT ["/opt/visual-relay/bin/relay-simulator"]
 
 FROM gui-runtime-base AS scout-runtime

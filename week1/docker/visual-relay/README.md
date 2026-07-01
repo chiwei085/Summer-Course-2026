@@ -3,7 +3,8 @@
 Containerizing a distributed cross-camera robot vision system.
 
 This assignment simulates a realistic container deployment: one simulator
-publishes camera data, two workstation containers show GUI views, and the
+shows the authoritative conveyor world and publishes camera data, two
+workstation containers show their own first-person camera views, and the
 services coordinate over separate Docker networks.
 
 ## Requirements
@@ -14,15 +15,15 @@ services coordinate over separate Docker networks.
 - Wayland or X11/XWayland
 - x86-64
 
-The workstation containers require a real Linux display server. There is no
+The runtime GUI containers require a real Linux display server. There is no
 headless GUI fallback.
 
 ## What You Will Run
 
 ```text
-relay-simulator  authoritative world, camera datagrams, control lease
-scout-station    GUI, camera receiver, UDP track updates, TCP handoff sender
-catcher-station  GUI, camera receiver, UDP stale checks, TCP handoff receiver
+relay-simulator  GUI conveyor world, camera datagrams, control lease
+scout-station    GUI first-person camera receiver, UDP updates, TCP handoff sender
+catcher-station  GUI first-person camera receiver, UDP stale checks, TCP handoff receiver
 ```
 
 Networks are split by data plane:
@@ -56,8 +57,9 @@ Explicit X11:
 docker compose --profile runtime -f compose.yaml -f compose.gui-x11.yaml up --build
 ```
 
-The simulator never receives display sockets. Only `scout-station` and
-`catcher-station` are granted the host GUI resources needed by SDL3.
+All three runtime services receive the host GUI resources needed by SDL3. The
+simulator owns the conveyor display; `scout-station` and `catcher-station`
+render only their respective camera streams and overlays.
 
 ## Stop And Clean Up
 
@@ -104,5 +106,8 @@ Runtime and fault checks:
 - A small project-owned C++20 socket wrapper, `rik_asio`.
 - GUI display integration for Wayland and X11 without privileged containers.
 
-The simulator produces deterministic camera datagrams and the workstation
-windows render the live system state through SDL3.
+The simulator produces deterministic raw RGB camera datagrams and renders the
+full conveyor world through SDL3. The workstation windows display those
+simulator-published first-person camera pixels, then add local overlays. The
+station camera views are horizontally mirrored relative to the simulator world
+overview and render the rear face of objects, matching the robot camera poses.

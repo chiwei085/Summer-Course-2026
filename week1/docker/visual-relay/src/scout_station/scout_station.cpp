@@ -1,11 +1,11 @@
 #include <array>
 #include <chrono>
-#include <mutex>
 #include <span>
 #include <string>
 #include <thread>
 
 #include "visual_relay/gui.hpp"
+#include "visual_relay/latest_value.hpp"
 #include "visual_relay/protocol.hpp"
 #include "visual_relay/rik_asio.hpp"
 #include "visual_relay/service.hpp"
@@ -15,33 +15,37 @@ using namespace visual_relay;
 namespace
 {
 
-struct SharedFrame
-{
-    std::mutex mutex;
-    CameraFrame latest = parse_camera_frame(
+CameraFrame initial_scout_frame() {
+    return parse_camera_frame(
         "VRFRAME|view=scout|frame=0|phase=0|fps=0|latency_ms=0|eta=0|"
         "descriptor=0|tcp=connecting|udp=waiting|handoff=waiting|objects=",
         StationView::scout);
-};
+}
 
-void receive_camera(ReadyState& ready, StopState& stop, SharedFrame& frame) {
+void receive_camera(ReadyState& ready, StopState& stop,
+                    LatestValue<CameraFrame>& frame) {
     try {
         auto socket =
             rik_asio::udp_socket::bind_any(env_port("CAMERA_PORT", 5000));
         socket.set_non_blocking(true);
-        std::array<char, 2048> data{};
+        std::array<std::uint8_t, 32768> data{};
         rik_asio::endpoint sender;
+        // Camera images arrive as a run of small row-band chunks; this
+        // accumulates them across datagrams. A dropped chunk just leaves
+        // stale pixels in those rows instead of losing the whole frame.
+        CameraChunkReceiver camera_frames(initial_scout_frame());
         while (!stop.stop_requested()) {
             const auto result = socket.receive_from(
-                std::span<char>(data.data(), data.size()), sender);
+                std::span<std::uint8_t>(data.data(), data.size()), sender);
             if (result.ok() && result.bytes > 0) {
-                const std::string payload(data.data(), result.bytes);
-                auto parsed = parse_camera_frame(payload, StationView::scout);
-                {
-                    std::scoped_lock lock(frame.mutex);
-                    frame.latest = std::move(parsed);
+                if (camera_frames.apply(std::span<const std::uint8_t>(
+                        data.data(), result.bytes))) {
+                    while (!stop.stop_requested() &&
+                           !frame.publish(camera_frames.frame(),
+                                          std::chrono::milliseconds(50))) {
+                    }
+                    ready.mark("camera_frame");
                 }
-                ready.mark("camera_frame");
             }
             else {
                 std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -76,9 +80,13 @@ void send_track_updates(ReadyState& ready, StopState& stop,
             update.predicted_exit_time_s = 1.8F;
             update.confidence = 0.88F;
             const auto packet = serialize_track_update(update);
-            socket.send_to(
+            const auto sent = socket.send_to(
                 std::span<const std::uint8_t>(packet.data(), packet.size()),
                 catcher);
+            if (!sent.ok()) {
+                log_line("scout-station", "UDP track update send failed");
+                ready.mark("udp_degraded");
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(40));
         }
     }
@@ -152,7 +160,7 @@ int main() {
     ReadyState ready;
     install_signal_handlers(stop);
     const auto session_id = stable_session_id("scout-station");
-    SharedFrame shared_frame;
+    LatestValue<CameraFrame> shared_frame{initial_scout_frame()};
 
     GuiWindow gui("Visual Relay Scout");
     if (!gui.ok()) {
@@ -171,18 +179,17 @@ int main() {
         [&] { send_track_updates(ready, stop, session_id); });
     std::thread handoff([&] { handoff_client(ready, stop, session_id); });
 
+    CameraFrame frame = initial_scout_frame();
     while (!stop.stop_requested()) {
-        CameraFrame frame;
-        {
-            std::scoped_lock lock(shared_frame.mutex);
-            frame = shared_frame.latest;
-            frame.tcp_state = ready.has("handoff_client") ? "connected"
-                                                          : frame.tcp_state;
-            frame.udp_state = ready.has("udp_sender") ? "fresh"
-                                                      : frame.udp_state;
-            if (ready.has("handoff_accept")) {
-                frame.handoff_state = "accepted";
-            }
+        shared_frame.take(frame);
+        frame.tcp_state =
+            ready.has("handoff_client") ? "connected" : frame.tcp_state;
+        frame.udp_state =
+            ready.has("udp_degraded")
+                ? "degraded"
+                : (ready.has("udp_sender") ? "fresh" : frame.udp_state);
+        if (ready.has("handoff_accept")) {
+            frame.handoff_state = "accepted";
         }
         gui.poll(stop, frame, ready.summary());
         std::this_thread::sleep_for(std::chrono::milliseconds(16));

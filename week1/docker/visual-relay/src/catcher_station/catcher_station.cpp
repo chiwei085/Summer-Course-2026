@@ -1,13 +1,14 @@
 #include <array>
 #include <chrono>
 #include <cstring>
-#include <mutex>
+#include <optional>
 #include <set>
 #include <span>
 #include <string>
 #include <thread>
 
 #include "visual_relay/gui.hpp"
+#include "visual_relay/latest_value.hpp"
 #include "visual_relay/protocol.hpp"
 #include "visual_relay/rik_asio.hpp"
 #include "visual_relay/service.hpp"
@@ -25,34 +26,38 @@ struct HandoffBook
     std::set<std::uint64_t> committed;
 };
 
-struct SharedFrame
-{
-    std::mutex mutex;
-    CameraFrame latest = parse_camera_frame(
+CameraFrame initial_catcher_frame() {
+    return parse_camera_frame(
         "VRFRAME|view=catcher|frame=0|phase=0|fps=0|latency_ms=0|eta=0|"
         "descriptor=0|tcp=connecting|udp=waiting|handoff=waiting|"
         "arm=0.7,-1.1|objects=",
         StationView::catcher);
-};
+}
 
-void receive_camera(ReadyState& ready, StopState& stop, SharedFrame& frame) {
+void receive_camera(ReadyState& ready, StopState& stop,
+                    LatestValue<CameraFrame>& frame) {
     try {
         auto socket =
             rik_asio::udp_socket::bind_any(env_port("CAMERA_PORT", 5002));
         socket.set_non_blocking(true);
-        std::array<char, 2048> data{};
+        std::array<std::uint8_t, 32768> data{};
         rik_asio::endpoint sender;
+        // Camera images arrive as a run of small row-band chunks; this
+        // accumulates them across datagrams. A dropped chunk just leaves
+        // stale pixels in those rows instead of losing the whole frame.
+        CameraChunkReceiver camera_frames(initial_catcher_frame());
         while (!stop.stop_requested()) {
             const auto result = socket.receive_from(
-                std::span<char>(data.data(), data.size()), sender);
+                std::span<std::uint8_t>(data.data(), data.size()), sender);
             if (result.ok() && result.bytes > 0) {
-                const std::string payload(data.data(), result.bytes);
-                auto parsed = parse_camera_frame(payload, StationView::catcher);
-                {
-                    std::scoped_lock lock(frame.mutex);
-                    frame.latest = std::move(parsed);
+                if (camera_frames.apply(std::span<const std::uint8_t>(
+                        data.data(), result.bytes))) {
+                    while (!stop.stop_requested() &&
+                           !frame.publish(camera_frames.frame(),
+                                          std::chrono::milliseconds(50))) {
+                    }
+                    ready.mark("camera_frame");
                 }
-                ready.mark("camera_frame");
             }
             else {
                 std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -109,9 +114,13 @@ void receive_track_updates(ReadyState& ready, StopState& stop) {
     }
 }
 
-MessageFrame read_frame(rik_asio::tcp_socket& socket) {
+std::optional<MessageFrame> read_frame_for(rik_asio::tcp_socket& socket,
+                                           std::chrono::milliseconds timeout) {
     std::array<std::uint8_t, 36> header{};
-    socket.read_exact(std::span<std::uint8_t>(header.data(), header.size()));
+    if (!socket.read_exact_for(
+            std::span<std::uint8_t>(header.data(), header.size()), timeout)) {
+        return std::nullopt;
+    }
     std::uint32_t payload_size = 0;
     std::memcpy(&payload_size, header.data() + 8, sizeof(payload_size));
     if (payload_size > kMaxMessagePayloadSize) {
@@ -119,16 +128,13 @@ MessageFrame read_frame(rik_asio::tcp_socket& socket) {
     }
     std::vector<std::uint8_t> bytes(header.begin(), header.end());
     bytes.resize(header.size() + payload_size);
-    if (payload_size > 0) {
-        socket.read_exact(std::span<std::uint8_t>(bytes.data() + header.size(),
-                                                  payload_size));
+    if (payload_size > 0 &&
+        !socket.read_exact_for(
+            std::span<std::uint8_t>(bytes.data() + header.size(), payload_size),
+            timeout)) {
+        return std::nullopt;
     }
     return parse_message(bytes);
-}
-
-void write_frame(rik_asio::tcp_socket& socket, const MessageFrame& frame) {
-    const auto bytes = serialize_message(frame);
-    socket.write_all(std::span<const std::uint8_t>(bytes.data(), bytes.size()));
 }
 
 void handoff_server(ReadyState& ready, StopState& stop) {
@@ -139,18 +145,20 @@ void handoff_server(ReadyState& ready, StopState& stop) {
         HandoffBook book;
         ready.mark("handoff_server");
         while (!stop.stop_requested()) {
-            auto accepted = acceptor.accept();
-            if (accepted.would_block()) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                continue;
-            }
+            auto accepted = acceptor.accept_for(std::chrono::milliseconds(50));
+            if (accepted.would_block()) continue;
             if (!accepted.ok()) {
                 continue;
             }
             auto socket = std::move(accepted.socket);
             while (!stop.stop_requested()) {
                 try {
-                    const auto frame = read_frame(socket);
+                    const auto maybe_frame =
+                        read_frame_for(socket, std::chrono::milliseconds(750));
+                    if (!maybe_frame.has_value()) {
+                        break;
+                    }
+                    const auto& frame = *maybe_frame;
                     const auto type =
                         static_cast<MessageType>(frame.header.message_type);
                     const auto id = frame.header.correlation_id == 0
@@ -173,23 +181,35 @@ void handoff_server(ReadyState& ready, StopState& stop) {
                         if (complete && !book.committed.contains(id)) {
                             book.committed.insert(id);
                             ready.mark("handoff_commit");
-                            write_frame(socket, make_text_message(
-                                                    MessageType::handoff_accept,
-                                                    frame.header.session_id,
-                                                    id + 1, id, "accepted"));
+                            const auto response = serialize_message(
+                                make_text_message(MessageType::handoff_accept,
+                                                  frame.header.session_id,
+                                                  id + 1, id, "accepted"));
+                            (void)socket.write_all_for(
+                                std::span<const std::uint8_t>(response.data(),
+                                                              response.size()),
+                                std::chrono::milliseconds(500));
                         }
                         else if (book.committed.contains(id)) {
-                            write_frame(socket,
-                                        make_text_message(
-                                            MessageType::handoff_accept,
-                                            frame.header.session_id, id + 1, id,
-                                            "duplicate-accepted"));
+                            const auto response =
+                                serialize_message(make_text_message(
+                                    MessageType::handoff_accept,
+                                    frame.header.session_id, id + 1, id,
+                                    "duplicate-accepted"));
+                            (void)socket.write_all_for(
+                                std::span<const std::uint8_t>(response.data(),
+                                                              response.size()),
+                                std::chrono::milliseconds(500));
                         }
                         else {
-                            write_frame(socket, make_text_message(
-                                                    MessageType::handoff_reject,
-                                                    frame.header.session_id,
-                                                    id + 1, id, "incomplete"));
+                            const auto response = serialize_message(
+                                make_text_message(MessageType::handoff_reject,
+                                                  frame.header.session_id,
+                                                  id + 1, id, "incomplete"));
+                            (void)socket.write_all_for(
+                                std::span<const std::uint8_t>(response.data(),
+                                                              response.size()),
+                                std::chrono::milliseconds(500));
                         }
                     }
                 }
@@ -231,7 +251,7 @@ int main() {
     StopState stop;
     ReadyState ready;
     install_signal_handlers(stop);
-    SharedFrame shared_frame;
+    LatestValue<CameraFrame> shared_frame{initial_catcher_frame()};
 
     GuiWindow gui("Visual Relay Catcher");
     if (!gui.ok()) {
@@ -250,20 +270,17 @@ int main() {
     std::thread handoff([&] { handoff_server(ready, stop); });
     std::thread arm([&] { arm_control_client(ready, stop); });
 
+    CameraFrame frame = initial_catcher_frame();
     while (!stop.stop_requested()) {
-        CameraFrame frame;
-        {
-            std::scoped_lock lock(shared_frame.mutex);
-            frame = shared_frame.latest;
-            frame.tcp_state = ready.has("handoff_server") ? "listening"
-                                                          : frame.tcp_state;
-            frame.udp_state = ready.has("fresh_track_update")
-                                  ? "fresh"
-                                  : (ready.has("udp_receiver") ? "waiting"
-                                                               : frame.udp_state);
-            if (ready.has("handoff_commit")) {
-                frame.handoff_state = "accepted";
-            }
+        shared_frame.take(frame);
+        frame.tcp_state =
+            ready.has("handoff_server") ? "listening" : frame.tcp_state;
+        frame.udp_state =
+            ready.has("fresh_track_update")
+                ? "fresh"
+                : (ready.has("udp_receiver") ? "waiting" : frame.udp_state);
+        if (ready.has("handoff_commit")) {
+            frame.handoff_state = "accepted";
         }
         gui.poll(stop, frame, ready.summary());
         std::this_thread::sleep_for(std::chrono::milliseconds(16));

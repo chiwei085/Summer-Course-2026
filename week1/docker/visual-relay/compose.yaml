@@ -1,6 +1,7 @@
 name: visual-relay
 
 x-runtime-defaults: &runtime-defaults
+  hostname: ${VISUAL_RELAY_X11_HOSTNAME:-visual-relay}
   restart: unless-stopped
   read_only: true
   tmpfs:

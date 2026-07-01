@@ -1,4 +1,18 @@
 services:
+  relay-simulator:
+    environment:
+      SDL_VIDEODRIVER: wayland
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY}
+      XDG_RUNTIME_DIR: /run/user/${UID:-1000}
+    user: "${UID:-1000}:${GID:-1000}"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - type: bind
+        source: ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}
+        target: /run/user/${UID:-1000}/${WAYLAND_DISPLAY}
+        read_only: false
+
   scout-station:
     environment:
       SDL_VIDEODRIVER: wayland

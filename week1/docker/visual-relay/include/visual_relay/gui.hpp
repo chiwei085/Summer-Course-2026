@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
-#include <cstdint>
 #include <vector>
 
 #include "visual_relay/service.hpp"
@@ -12,6 +13,7 @@ namespace visual_relay
 
 enum class StationView
 {
+    simulator,
     scout,
     catcher,
 };
@@ -26,6 +28,19 @@ struct SceneObject
     float rotation_rad = 0.0F;
     float confidence = 0.0F;
     float match_score = 0.0F;
+    bool target = false;
+    bool visible = true;
+};
+
+struct ProjectedObject
+{
+    std::uint64_t track_id = 0;
+    float center_x_px = 0.0F;
+    float center_y_px = 0.0F;
+    float width_px = 0.0F;
+    float height_px = 0.0F;
+    float depth = 0.0F;
+    float score = 0.0F;
     bool target = false;
     bool visible = true;
 };
@@ -45,9 +60,37 @@ struct CameraFrame
     std::string udp_state = "waiting";
     std::string handoff_state = "pending";
     std::vector<SceneObject> objects;
+    std::vector<ProjectedObject> projections;
+    int image_width = 0;
+    int image_height = 0;
+    std::vector<std::uint8_t> rgb_pixels;
 };
 
 CameraFrame parse_camera_frame(std::string_view payload, StationView fallback);
+
+// Stateful receiver for the simulator's row-band camera datagrams. It rejects
+// stale chunks and tracks per-row coverage for the current frame so delayed
+// packets from older frames cannot overwrite newer pixels.
+class CameraChunkReceiver
+{
+public:
+    explicit CameraChunkReceiver(CameraFrame initial);
+
+    bool apply(std::span<const std::uint8_t> payload);
+    const CameraFrame& frame() const;
+    bool frame_complete() const;
+
+private:
+    CameraFrame frame_;
+    std::uint64_t sequence_ = 0;
+    bool have_sequence_ = false;
+    std::vector<bool> received_rows_;
+};
+
+// Compatibility wrapper for tests and legacy callers that do not need
+// out-of-order protection.
+bool apply_camera_chunk(CameraFrame& frame,
+                        std::span<const std::uint8_t> payload);
 
 class GuiWindow
 {
@@ -66,6 +109,9 @@ private:
     bool ok_{false};
     void* window_{nullptr};
     void* renderer_{nullptr};
+    void* camera_texture_{nullptr};
+    int camera_texture_width_{0};
+    int camera_texture_height_{0};
 };
 
 }  // namespace visual_relay
