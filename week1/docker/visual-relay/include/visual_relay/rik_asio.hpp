@@ -3,11 +3,14 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cerrno>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -62,10 +65,40 @@ inline bool is_would_block(int error) {
 
 inline io_result result_from_errno() {
     const int error = errno;
-    if (is_would_block(error)) {
+    if (is_would_block(error) || error == EINTR) {
         return {io_status::would_block, 0, error};
     }
     return {io_status::error, 0, error};
+}
+
+inline bool wait_fd(int fd, short events, std::chrono::milliseconds timeout) {
+    pollfd item{};
+    item.fd = fd;
+    item.events = events;
+    const auto timeout_ms =
+        static_cast<int>(std::max<std::int64_t>(0, timeout.count()));
+    while (true) {
+        const int rc = ::poll(&item, 1, timeout_ms);
+        if (rc > 0) {
+            return (item.revents & (events | POLLHUP | POLLERR)) != 0;
+        }
+        if (rc == 0) {
+            return false;
+        }
+        if (errno != EINTR) {
+            return false;
+        }
+    }
+}
+
+inline std::chrono::milliseconds remaining_until(
+    std::chrono::steady_clock::time_point deadline) {
+    const auto now = std::chrono::steady_clock::now();
+    if (now >= deadline) {
+        return std::chrono::milliseconds(0);
+    }
+    return std::chrono::duration_cast<std::chrono::milliseconds>(deadline -
+                                                                 now);
 }
 
 inline void throw_errno(std::string_view operation) {
@@ -166,6 +199,14 @@ public:
         if (fcntl(fd_, F_SETFL, next) < 0) {
             detail::throw_errno("fcntl(F_SETFL)");
         }
+    }
+
+    [[nodiscard]] bool wait_readable(std::chrono::milliseconds timeout) const {
+        return detail::wait_fd(fd_, POLLIN, timeout);
+    }
+
+    [[nodiscard]] bool wait_writable(std::chrono::milliseconds timeout) const {
+        return detail::wait_fd(fd_, POLLOUT, timeout);
     }
 
 protected:
@@ -269,11 +310,47 @@ public:
     }
 
     template <class Byte>
+    io_result read_some_for(std::span<Byte> buffer,
+                            std::chrono::milliseconds timeout) {
+        if (!wait_readable(timeout)) {
+            return {io_status::would_block, 0, EAGAIN};
+        }
+        return read_some(buffer);
+    }
+
+    template <class Byte>
     void read_exact(std::span<Byte> buffer) {
         static_assert(sizeof(Byte) == 1);
         std::size_t offset = 0;
         while (offset < buffer.size()) {
             auto result = read_some(buffer.subspan(offset));
+            if (result.status == io_status::closed) {
+                throw socket_error("tcp read closed");
+            }
+            if (result.status == io_status::would_block) {
+                wait_readable(std::chrono::milliseconds(10));
+                continue;
+            }
+            if (!result.ok()) {
+                throw socket_error("tcp read failed: " +
+                                   std::to_string(result.error));
+            }
+            offset += result.bytes;
+        }
+    }
+
+    template <class Byte>
+    bool read_exact_for(std::span<Byte> buffer,
+                        std::chrono::milliseconds timeout) {
+        static_assert(sizeof(Byte) == 1);
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+        std::size_t offset = 0;
+        while (offset < buffer.size()) {
+            const auto remaining = detail::remaining_until(deadline);
+            if (remaining.count() == 0) {
+                return false;
+            }
+            auto result = read_some_for(buffer.subspan(offset), remaining);
             if (result.status == io_status::closed) {
                 throw socket_error("tcp read closed");
             }
@@ -286,6 +363,7 @@ public:
             }
             offset += result.bytes;
         }
+        return true;
     }
 
     void write_all(std::span<const std::uint8_t> buffer) {
@@ -302,6 +380,7 @@ public:
                 continue;
             }
             if (n < 0 && detail::is_would_block(errno)) {
+                (void)wait_writable(std::chrono::milliseconds(10));
                 continue;
             }
             if (n < 0) {
@@ -311,9 +390,49 @@ public:
         }
     }
 
+    bool write_all_for(std::span<const std::uint8_t> buffer,
+                       std::chrono::milliseconds timeout) {
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+        std::size_t offset = 0;
+        while (offset < buffer.size()) {
+            const auto remaining = detail::remaining_until(deadline);
+            if (remaining.count() == 0) {
+                return false;
+            }
+            if (!wait_writable(remaining)) {
+                return false;
+            }
+            int flags = 0;
+#ifdef MSG_NOSIGNAL
+            flags = MSG_NOSIGNAL;
+#endif
+            const ssize_t n = ::send(fd_, buffer.data() + offset,
+                                     buffer.size() - offset, flags);
+            if (n > 0) {
+                offset += static_cast<std::size_t>(n);
+                continue;
+            }
+            if (n < 0 && (detail::is_would_block(errno) || errno == EINTR)) {
+                continue;
+            }
+            if (n < 0) {
+                detail::throw_errno("tcp write");
+            }
+            throw socket_error("tcp write closed");
+        }
+        return true;
+    }
+
     void write_all(std::string_view buffer) {
         auto* data = reinterpret_cast<const std::uint8_t*>(buffer.data());
         write_all(std::span<const std::uint8_t>(data, buffer.size()));
+    }
+
+    bool write_all_for(std::string_view buffer,
+                       std::chrono::milliseconds timeout) {
+        auto* data = reinterpret_cast<const std::uint8_t*>(buffer.data());
+        return write_all_for(std::span<const std::uint8_t>(data, buffer.size()),
+                             timeout);
     }
 };
 
@@ -374,6 +493,13 @@ public:
             return {io_status::would_block, tcp_socket(), error};
         }
         return {io_status::error, tcp_socket(), error};
+    }
+
+    accept_result accept_for(std::chrono::milliseconds timeout) {
+        if (!wait_readable(timeout)) {
+            return {io_status::would_block, tcp_socket(), EAGAIN};
+        }
+        return accept();
     }
 };
 

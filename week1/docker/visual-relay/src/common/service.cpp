@@ -2,11 +2,15 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <csignal>
 #include <cstdlib>
+#include <exception>
 #include <iostream>
 #include <span>
 #include <sstream>
+#include <string>
+#include <utility>
 
 #include "visual_relay/rik_asio.hpp"
 
@@ -129,17 +133,15 @@ void ReadyHttpServer::run() {
         auto acceptor = rik_asio::tcp_acceptor::bind_any(port_);
         acceptor.set_non_blocking(true);
         while (!stop_.stop_requested()) {
-            auto accepted = acceptor.accept();
-            if (accepted.would_block()) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                continue;
-            }
+            auto accepted = acceptor.accept_for(std::chrono::milliseconds(50));
+            if (accepted.would_block()) continue;
             if (!accepted.ok()) {
                 continue;
             }
             std::array<char, 512> request{};
-            accepted.socket.read_some(
-                std::span<char>(request.data(), request.size()));
+            (void)accepted.socket.read_some_for(
+                std::span<char>(request.data(), request.size()),
+                std::chrono::milliseconds(250));
             const bool ready = ready_.has_all(required_marks_);
             const auto body = service_name_ +
                               " ready=" + (ready ? "true " : "false ") +
@@ -149,7 +151,8 @@ void ReadyHttpServer::run() {
                 (ready ? "200 OK" : "503 Service Unavailable") +
                 "\r\nContent-Type: text/plain\r\nContent-Length: " +
                 std::to_string(body.size()) + "\r\n\r\n" + body;
-            accepted.socket.write_all(response);
+            (void)accepted.socket.write_all_for(response,
+                                                std::chrono::milliseconds(250));
         }
     }
     catch (const std::exception& ex) {
