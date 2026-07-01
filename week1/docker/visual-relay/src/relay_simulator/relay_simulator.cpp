@@ -34,7 +34,7 @@ struct SimObject
 constexpr float kBeltLengthM = 6.0F;
 constexpr float kTunnelStartM = 2.4F;
 constexpr float kTunnelEndM = 3.6F;
-constexpr float kFrameDtS = 0.05F;
+constexpr float kFrameDtS = 0.08F;
 // Stations only ever see what was true a tick ago: this is what actually
 // gives the UDP camera link a (small) transit delay instead of stations
 // observing the exact same instant the simulator renders locally.
@@ -126,7 +126,7 @@ std::string encode_camera_frame(std::string_view view, std::uint64_t frame,
     std::ostringstream out;
     out << std::fixed << std::setprecision(2);
     out << "VRFRAME|view=" << view << "|frame=" << frame
-        << "|phase=" << std::fmod(time_s, 1.0F) << "|fps=20|latency_ms="
+        << "|phase=" << std::fmod(time_s, 1.0F) << "|fps=12.5|latency_ms="
         << (catcher ? 34.0F + std::sin(time_s) * 4.0F
                     : 27.0F + std::cos(time_s) * 3.0F)
         << "|eta=" << std::max(0.0F, (kTunnelEndM - 2.12F) / kBaseVelocityMps)
@@ -383,9 +383,9 @@ RgbImage render_camera_image(const CameraFrame& frame,
     return image;
 }
 
-// Keep the RGB stream in row bands instead of one huge datagram. Four rows
-// limit the damage from a lost packet to a small horizontal band.
-constexpr std::size_t kCameraChunkRows = 4;
+// Keep the RGB stream in row bands instead of one huge datagram. A 240x135
+// frame at 15 rows per chunk stays readable without flooding the UDP bridge.
+constexpr std::size_t kCameraChunkRows = 15;
 
 std::vector<std::uint8_t> encode_camera_chunk(std::uint64_t frame_seq,
                                               const RgbImage& image,
@@ -548,7 +548,7 @@ void camera_sender(ReadyState& ready, StopState& stop, const SceneConfig& scene,
                 ready.mark("catcher_frame");
             }
             ++frame;
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::this_thread::sleep_for(std::chrono::milliseconds(80));
         }
     }
     catch (const std::exception& ex) {

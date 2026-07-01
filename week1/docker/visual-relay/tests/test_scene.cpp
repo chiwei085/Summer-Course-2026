@@ -35,8 +35,8 @@ std::vector<std::uint8_t> make_chunk(std::uint64_t sequence, int width,
 
 int main() {
     const auto scene = load_scene_config();
-    expect(scene.camera_width == 640, "scene camera width");
-    expect(scene.camera_height == 360, "scene camera height");
+    expect(scene.camera_width == 240, "scene camera width");
+    expect(scene.camera_height == 135, "scene camera height");
     const auto* red = find_appearance(scene, "red-crate");
     expect(red != nullptr, "red crate appearance loaded");
     expect(red->primary.r == 0xdc && red->secondary.g == 0xbf,

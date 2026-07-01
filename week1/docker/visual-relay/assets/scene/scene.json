@@ -2,7 +2,7 @@
   "name": "visual-relay-reference-scene",
   "seed": 20260630,
   "units": "meters",
-  "camera_resolution": [640, 360],
+  "camera_resolution": [240, 135],
   "belt": {
     "length_m": 6.0,
     "width_m": 0.82,
