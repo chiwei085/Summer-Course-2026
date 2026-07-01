@@ -298,9 +298,9 @@ void draw_arm(SDL_Renderer* renderer, float base_x, float base_y, float joint_a,
 }
 
 void draw_status_panel(SDL_Renderer* renderer, const CameraFrame& frame,
-                       const std::string& status, float x, float y, float w) {
-    fill_rect(renderer, x, y, w, 140.0F, {17, 24, 39, 235});
-    stroke_rect(renderer, x, y, w, 140.0F, {71, 85, 105, 255});
+                       float x, float y, float w) {
+    fill_rect(renderer, x, y, w, 116.0F, {17, 24, 39, 235});
+    stroke_rect(renderer, x, y, w, 116.0F, {71, 85, 105, 255});
     std::string title = "SIMULATOR WORLD";
     if (frame.view == StationView::scout) {
         title = "SCOUT CAMERA";
@@ -324,12 +324,6 @@ void draw_status_panel(SDL_Renderer* renderer, const CameraFrame& frame,
     debug_text(renderer, x + 12.0F, y + 88.0F, "descriptor");
     draw_gauge(renderer, x + 94.0F, y + 91.0F, w - 112.0F,
                frame.descriptor_quality, {34, 197, 94, 255});
-    std::string ready = "ready " + status;
-    if (ready.size() > 76U) {
-        ready.resize(73U);
-        ready += "...";
-    }
-    debug_text(renderer, x + 12.0F, y + 112.0F, ready, {148, 163, 184, 255});
 }
 
 void render_camera_pixels(SDL_Renderer* renderer, SDL_Texture*& texture,
@@ -338,7 +332,7 @@ void render_camera_pixels(SDL_Renderer* renderer, SDL_Texture*& texture,
     fill_rect(renderer, 0.0F, 0.0F, static_cast<float>(width),
               static_cast<float>(height), {8, 13, 24, 255});
 
-    const float panel_h = 150.0F;
+    const float panel_h = 126.0F;
     const float margin = 28.0F;
     const float available_w = static_cast<float>(width) - margin * 2.0F;
     const float available_h =
@@ -400,13 +394,13 @@ void render_camera_pixels(SDL_Renderer* renderer, SDL_Texture*& texture,
     }
 
     draw_status_panel(
-        renderer, frame, status, margin,
-        static_cast<float>(height) - panel_h + 10.0F,
+        renderer, frame, margin, static_cast<float>(height) - panel_h + 10.0F,
         std::min(560.0F, static_cast<float>(width) - margin * 2.0F));
 }
 
 void render_scene(SDL_Renderer* renderer, const CameraFrame& frame,
                   const std::string& status, int width, int height) {
+    (void)status;
     fill_rect(renderer, 0.0F, 0.0F, static_cast<float>(width),
               static_cast<float>(height), {11, 18, 32, 255});
     fill_rect(renderer, 0.0F, 0.0F, static_cast<float>(width), 86.0F,
@@ -488,7 +482,7 @@ void render_scene(SDL_Renderer* renderer, const CameraFrame& frame,
     }
 
     if (frame.view != StationView::simulator) {
-        draw_status_panel(renderer, frame, status, margin, 24.0F,
+        draw_status_panel(renderer, frame, margin, 24.0F,
                           std::min(560.0F, static_cast<float>(width) - 88.0F));
     }
 }
