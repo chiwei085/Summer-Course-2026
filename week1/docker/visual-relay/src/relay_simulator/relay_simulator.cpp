@@ -539,14 +539,10 @@ void camera_sender(ReadyState& ready, StopState& stop, const SceneConfig& scene,
 
             send_camera_image(socket, scout, "scout", station_frame,
                               scout_image, scout_payload);
-            if (!ready.has("scout_frame")) {
-                ready.mark("scout_frame");
-            }
+            ready.mark("scout_frame");
             send_camera_image(socket, catcher, "catcher", station_frame,
                               catcher_image, catcher_payload);
-            if (!ready.has("catcher_frame")) {
-                ready.mark("catcher_frame");
-            }
+            ready.mark("catcher_frame");
             ++frame;
             std::this_thread::sleep_for(std::chrono::milliseconds(80));
         }
@@ -592,7 +588,7 @@ int main() {
         encode_camera_frame("simulator", 0, scene), StationView::simulator);
     while (!stop.stop_requested()) {
         simulator_frame.take(frame);
-        gui.poll(stop, frame, ready.summary());
+        gui.poll(stop, frame);
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 

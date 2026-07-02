@@ -1,15 +1,21 @@
 #include "visual_relay/gui.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <numbers>
+#include <span>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <thread>
+
+#include "visual_relay/rik_asio.hpp"
 
 #if VISUAL_RELAY_HAS_SDL3
 #include <SDL3/SDL.h>
@@ -21,6 +27,7 @@ namespace
 {
 
 constexpr float kPi = std::numbers::pi_v<float>;
+constexpr float kStatusPanelHeight = 116.0F;
 
 std::vector<std::string_view> split(std::string_view text, char separator) {
     std::vector<std::string_view> parts;
@@ -299,8 +306,8 @@ void draw_arm(SDL_Renderer* renderer, float base_x, float base_y, float joint_a,
 
 void draw_status_panel(SDL_Renderer* renderer, const CameraFrame& frame,
                        float x, float y, float w) {
-    fill_rect(renderer, x, y, w, 116.0F, {17, 24, 39, 235});
-    stroke_rect(renderer, x, y, w, 116.0F, {71, 85, 105, 255});
+    fill_rect(renderer, x, y, w, kStatusPanelHeight, {17, 24, 39, 235});
+    stroke_rect(renderer, x, y, w, kStatusPanelHeight, {71, 85, 105, 255});
     std::string title = "SIMULATOR WORLD";
     if (frame.view == StationView::scout) {
         title = "SCOUT CAMERA";
@@ -332,7 +339,7 @@ void render_camera_pixels(SDL_Renderer* renderer, SDL_Texture*& texture,
     fill_rect(renderer, 0.0F, 0.0F, static_cast<float>(width),
               static_cast<float>(height), {8, 13, 24, 255});
 
-    const float panel_h = 126.0F;
+    const float panel_h = kStatusPanelHeight + 10.0F;
     const float margin = 28.0F;
     const float available_w = static_cast<float>(width) - margin * 2.0F;
     const float available_h =
@@ -398,9 +405,8 @@ void render_camera_pixels(SDL_Renderer* renderer, SDL_Texture*& texture,
         std::min(560.0F, static_cast<float>(width) - margin * 2.0F));
 }
 
-void render_scene(SDL_Renderer* renderer, const CameraFrame& frame,
-                  const std::string& status, int width, int height) {
-    (void)status;
+void render_scene(SDL_Renderer* renderer, const CameraFrame& frame, int width,
+                  int height) {
     fill_rect(renderer, 0.0F, 0.0F, static_cast<float>(width),
               static_cast<float>(height), {11, 18, 32, 255});
     fill_rect(renderer, 0.0F, 0.0F, static_cast<float>(width), 86.0F,
@@ -605,16 +611,6 @@ void copy_metadata_fields(CameraFrame& dest, const CameraFrame& src) {
 
 }  // namespace
 
-bool apply_camera_chunk(CameraFrame& frame,
-                        std::span<const std::uint8_t> payload) {
-    CameraChunkReceiver receiver(frame);
-    if (!receiver.apply(payload)) {
-        return false;
-    }
-    frame = receiver.frame();
-    return true;
-}
-
 CameraChunkReceiver::CameraChunkReceiver(CameraFrame initial)
     : frame_(std::move(initial)),
       sequence_(frame_.sequence),
@@ -722,6 +718,45 @@ bool CameraChunkReceiver::apply(std::span<const std::uint8_t> payload) {
     return true;
 }
 
+void receive_camera_frames(ReadyState& ready, StopState& stop,
+                           LatestValue<CameraFrame>& frame,
+                           std::string_view service_name, int port,
+                           CameraFrame initial) {
+    try {
+        auto socket = rik_asio::udp_socket::bind_any(port);
+        socket.set_non_blocking(true);
+        std::array<std::uint8_t, 32768> data{};
+        rik_asio::endpoint sender;
+        // Camera images arrive as a run of small row-band chunks; this
+        // accumulates them across datagrams. A dropped chunk just leaves
+        // stale pixels in those rows instead of losing the whole frame.
+        CameraChunkReceiver camera_frames(std::move(initial));
+        while (!stop.stop_requested()) {
+            const auto result = socket.receive_from(
+                std::span<std::uint8_t>(data.data(), data.size()), sender);
+            if (result.ok() && result.bytes > 0) {
+                if (camera_frames.apply(std::span<const std::uint8_t>(
+                        data.data(), result.bytes)) &&
+                    camera_frames.frame_complete()) {
+                    while (!stop.stop_requested() &&
+                           !frame.publish(camera_frames.frame(),
+                                          std::chrono::milliseconds(50))) {
+                    }
+                    ready.mark("camera_frame");
+                }
+            }
+            else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            }
+        }
+    }
+    catch (const std::exception& ex) {
+        log_line(service_name,
+                 std::string("camera receiver failed: ") + ex.what());
+        stop.request_stop();
+    }
+}
+
 GuiWindow::GuiWindow(std::string title) : title_(std::move(title)) {
 #if VISUAL_RELAY_HAS_SDL3
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -780,8 +815,7 @@ bool GuiWindow::ok() const {
     return ok_;
 }
 
-bool GuiWindow::poll(StopState& stop, const CameraFrame& frame,
-                     const std::string& status) {
+bool GuiWindow::poll(StopState& stop, const CameraFrame& frame) {
 #if VISUAL_RELAY_HAS_SDL3
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -797,7 +831,7 @@ bool GuiWindow::poll(StopState& stop, const CameraFrame& frame,
     auto* renderer = static_cast<SDL_Renderer*>(renderer_);
     SDL_GetRenderOutputSize(renderer, &width, &height);
     if (frame.view == StationView::simulator || frame.rgb_pixels.empty()) {
-        render_scene(renderer, frame, status, width, height);
+        render_scene(renderer, frame, width, height);
     }
     else {
         auto* texture = static_cast<SDL_Texture*>(camera_texture_);
@@ -810,7 +844,6 @@ bool GuiWindow::poll(StopState& stop, const CameraFrame& frame,
     return !stop.stop_requested();
 #else
     (void)frame;
-    (void)status;
     stop.request_stop();
     return false;
 #endif

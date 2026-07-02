@@ -16,6 +16,7 @@ constexpr std::uint32_t kTrackUpdateMagic = 0x56525455;  // VRTU
 constexpr std::uint32_t kMessageMagic = 0x5652464d;      // VRFM
 constexpr std::uint16_t kProtocolVersion = 1;
 constexpr std::size_t kTrackUpdateWireSize = 60;
+constexpr std::size_t kMessageHeaderWireSize = 36;
 constexpr std::uint32_t kMaxMessagePayloadSize = 4096;
 
 enum class MessageType : std::uint16_t
@@ -91,7 +92,5 @@ MessageFrame make_text_message(MessageType type, std::uint64_t session_id,
                                std::uint64_t message_id,
                                std::uint64_t correlation_id,
                                std::string_view text);
-
-std::string_view message_type_name(MessageType type);
 
 }  // namespace visual_relay

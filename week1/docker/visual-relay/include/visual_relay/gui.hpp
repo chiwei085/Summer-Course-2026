@@ -6,6 +6,7 @@
 #include <string_view>
 #include <vector>
 
+#include "visual_relay/latest_value.hpp"
 #include "visual_relay/service.hpp"
 
 namespace visual_relay
@@ -87,10 +88,13 @@ private:
     std::vector<bool> received_rows_;
 };
 
-// Compatibility wrapper for tests and legacy callers that do not need
-// out-of-order protection.
-bool apply_camera_chunk(CameraFrame& frame,
-                        std::span<const std::uint8_t> payload);
+// Reads row-band UDP camera datagrams for one station, publishing each
+// completed frame into `frame` and marking `ready` once a full frame has
+// arrived. Runs until `stop` is requested.
+void receive_camera_frames(ReadyState& ready, StopState& stop,
+                           LatestValue<CameraFrame>& frame,
+                           std::string_view service_name, int port,
+                           CameraFrame initial);
 
 class GuiWindow
 {
@@ -101,8 +105,7 @@ public:
     ~GuiWindow();
 
     bool ok() const;
-    bool poll(StopState& stop, const CameraFrame& frame,
-              const std::string& status);
+    bool poll(StopState& stop, const CameraFrame& frame);
 
 private:
     std::string title_;

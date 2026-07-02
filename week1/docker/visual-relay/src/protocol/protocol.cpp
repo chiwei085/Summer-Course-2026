@@ -1,6 +1,5 @@
 #include "visual_relay/protocol.hpp"
 
-#include <algorithm>
 #include <bit>
 #include <cstring>
 #include <limits>
@@ -16,6 +15,14 @@ void append_scalar(std::vector<std::uint8_t>& out, T value) {
     static_assert(std::is_trivially_copyable_v<T>);
     auto* begin = reinterpret_cast<const std::uint8_t*>(&value);
     out.insert(out.end(), begin, begin + sizeof(T));
+}
+
+template <class T, std::size_t N>
+void append_scalar(std::array<std::uint8_t, N>& out, std::size_t& offset,
+                   T value) {
+    static_assert(std::is_trivially_copyable_v<T>);
+    std::memcpy(out.data() + offset, &value, sizeof(T));
+    offset += sizeof(T);
 }
 
 template <class T>
@@ -67,31 +74,28 @@ std::uint32_t fnv1a32(std::span<const std::uint8_t> bytes) {
 
 std::array<std::uint8_t, kTrackUpdateWireSize> serialize_track_update(
     const TrackUpdate& update) {
-    std::vector<std::uint8_t> bytes;
-    bytes.reserve(kTrackUpdateWireSize);
-    append_scalar(bytes, update.magic);
-    append_scalar(bytes, update.version);
-    append_scalar(bytes, update.flags);
-    append_scalar(bytes, update.session_id);
-    append_scalar(bytes, update.track_id);
-    append_scalar(bytes, update.sequence);
-    append_scalar(bytes, update.capture_time_ns);
-    append_scalar(bytes, update.belt_position_m);
-    append_scalar(bytes, update.velocity_mps);
-    append_scalar(bytes, update.predicted_exit_time_s);
-    append_scalar(bytes, update.confidence);
-    append_scalar(bytes, std::uint32_t{0});
+    std::array<std::uint8_t, kTrackUpdateWireSize> out{};
+    std::size_t offset = 0;
+    append_scalar(out, offset, update.magic);
+    append_scalar(out, offset, update.version);
+    append_scalar(out, offset, update.flags);
+    append_scalar(out, offset, update.session_id);
+    append_scalar(out, offset, update.track_id);
+    append_scalar(out, offset, update.sequence);
+    append_scalar(out, offset, update.capture_time_ns);
+    append_scalar(out, offset, update.belt_position_m);
+    append_scalar(out, offset, update.velocity_mps);
+    append_scalar(out, offset, update.predicted_exit_time_s);
+    append_scalar(out, offset, update.confidence);
+    append_scalar(out, offset, std::uint32_t{0});
 
-    if (bytes.size() != kTrackUpdateWireSize) {
+    if (offset != kTrackUpdateWireSize) {
         throw ProtocolError("internal TrackUpdate size mismatch");
     }
     const auto checksum = fnv1a32(std::span<const std::uint8_t>(
-        bytes.data(), bytes.size() - sizeof(std::uint32_t)));
-    std::memcpy(bytes.data() + bytes.size() - sizeof(std::uint32_t), &checksum,
+        out.data(), out.size() - sizeof(std::uint32_t)));
+    std::memcpy(out.data() + out.size() - sizeof(std::uint32_t), &checksum,
                 sizeof(checksum));
-
-    std::array<std::uint8_t, kTrackUpdateWireSize> out{};
-    std::copy(bytes.begin(), bytes.end(), out.begin());
     return out;
 }
 
@@ -163,7 +167,7 @@ std::vector<std::uint8_t> serialize_message(const MessageFrame& frame) {
     header.payload_size = static_cast<std::uint32_t>(frame.payload.size());
 
     std::vector<std::uint8_t> bytes;
-    bytes.reserve(36 + frame.payload.size());
+    bytes.reserve(kMessageHeaderWireSize + frame.payload.size());
     append_header(bytes, header);
     bytes.insert(bytes.end(), frame.payload.begin(), frame.payload.end());
     return bytes;
@@ -202,36 +206,6 @@ MessageFrame make_text_message(MessageType type, std::uint64_t session_id,
     frame.header.correlation_id = correlation_id;
     frame.payload.assign(text.begin(), text.end());
     return frame;
-}
-
-std::string_view message_type_name(MessageType type) {
-    switch (type) {
-        case MessageType::hello:
-            return "HELLO";
-        case MessageType::hello_ack:
-            return "HELLO_ACK";
-        case MessageType::heartbeat:
-            return "HEARTBEAT";
-        case MessageType::handoff_prepare:
-            return "HANDOFF_PREPARE";
-        case MessageType::handoff_descriptor:
-            return "HANDOFF_DESCRIPTOR";
-        case MessageType::handoff_thumbnail:
-            return "HANDOFF_THUMBNAIL";
-        case MessageType::handoff_commit:
-            return "HANDOFF_COMMIT";
-        case MessageType::handoff_accept:
-            return "HANDOFF_ACCEPT";
-        case MessageType::handoff_reject:
-            return "HANDOFF_REJECT";
-        case MessageType::handoff_cancel:
-            return "HANDOFF_CANCEL";
-        case MessageType::intercept_result:
-            return "INTERCEPT_RESULT";
-        case MessageType::error:
-            return "ERROR";
-    }
-    return "UNKNOWN";
 }
 
 }  // namespace visual_relay

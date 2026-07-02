@@ -319,27 +319,6 @@ public:
     }
 
     template <class Byte>
-    void read_exact(std::span<Byte> buffer) {
-        static_assert(sizeof(Byte) == 1);
-        std::size_t offset = 0;
-        while (offset < buffer.size()) {
-            auto result = read_some(buffer.subspan(offset));
-            if (result.status == io_status::closed) {
-                throw socket_error("tcp read closed");
-            }
-            if (result.status == io_status::would_block) {
-                wait_readable(std::chrono::milliseconds(10));
-                continue;
-            }
-            if (!result.ok()) {
-                throw socket_error("tcp read failed: " +
-                                   std::to_string(result.error));
-            }
-            offset += result.bytes;
-        }
-    }
-
-    template <class Byte>
     bool read_exact_for(std::span<Byte> buffer,
                         std::chrono::milliseconds timeout) {
         static_assert(sizeof(Byte) == 1);

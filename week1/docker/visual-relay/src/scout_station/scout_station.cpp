@@ -22,43 +22,6 @@ CameraFrame initial_scout_frame() {
         StationView::scout);
 }
 
-void receive_camera(ReadyState& ready, StopState& stop,
-                    LatestValue<CameraFrame>& frame) {
-    try {
-        auto socket =
-            rik_asio::udp_socket::bind_any(env_port("CAMERA_PORT", 5000));
-        socket.set_non_blocking(true);
-        std::array<std::uint8_t, 32768> data{};
-        rik_asio::endpoint sender;
-        // Camera images arrive as a run of small row-band chunks; this
-        // accumulates them across datagrams. A dropped chunk just leaves
-        // stale pixels in those rows instead of losing the whole frame.
-        CameraChunkReceiver camera_frames(initial_scout_frame());
-        while (!stop.stop_requested()) {
-            const auto result = socket.receive_from(
-                std::span<std::uint8_t>(data.data(), data.size()), sender);
-            if (result.ok() && result.bytes > 0) {
-                if (camera_frames.apply(std::span<const std::uint8_t>(
-                        data.data(), result.bytes))) {
-                    while (!stop.stop_requested() &&
-                           !frame.publish(camera_frames.frame(),
-                                          std::chrono::milliseconds(50))) {
-                    }
-                    ready.mark("camera_frame");
-                }
-            }
-            else {
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            }
-        }
-    }
-    catch (const std::exception& ex) {
-        log_line("scout-station",
-                 std::string("camera receiver failed: ") + ex.what());
-        stop.request_stop();
-    }
-}
-
 void send_track_updates(ReadyState& ready, StopState& stop,
                         std::uint64_t session_id) {
     try {
@@ -137,8 +100,9 @@ void handoff_client(ReadyState& ready, StopState& stop,
                                   message_id, message_id, "commit=track-7001"));
 
             std::array<std::uint8_t, 256> response{};
-            const auto result = socket.read_some(
-                std::span<std::uint8_t>(response.data(), response.size()));
+            const auto result = socket.read_some_for(
+                std::span<std::uint8_t>(response.data(), response.size()),
+                std::chrono::milliseconds(750));
             if (result.ok() && result.bytes > 0) {
                 log_line("scout-station", "handoff response received");
                 ready.mark("handoff_accept");
@@ -174,7 +138,11 @@ int main() {
         {"gui", "camera_frame", "udp_sender", "handoff_client"},
         env_port("READY_PORT", 9001));
     health.start();
-    std::thread camera([&] { receive_camera(ready, stop, shared_frame); });
+    std::thread camera([&] {
+        receive_camera_frames(ready, stop, shared_frame, "scout-station",
+                              env_port("CAMERA_PORT", 5000),
+                              initial_scout_frame());
+    });
     std::thread udp_sender(
         [&] { send_track_updates(ready, stop, session_id); });
     std::thread handoff([&] { handoff_client(ready, stop, session_id); });
@@ -191,7 +159,7 @@ int main() {
         if (ready.has("handoff_accept")) {
             frame.handoff_state = "accepted";
         }
-        gui.poll(stop, frame, ready.summary());
+        gui.poll(stop, frame);
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
