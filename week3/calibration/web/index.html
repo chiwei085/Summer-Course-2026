@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>week3/calibration notebook</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header class="notebook-header">
+    <h1>week3 / calibration &mdash; Zhang's Method, Reprojection &amp; Per-View Error</h1>
+    <p>C++20 backend (Mongoose), no OpenCV &mdash; pinhole-only camera model, no lens distortion.</p>
+  </header>
+
+  <main>
+    <section class="cell" id="cell-summary">
+      <div class="tag">In [1]</div>
+      <div class="body">
+        <h2>1. Calibration Summary</h2>
+        <p class="desc">
+          Recomputed from scratch every time a view is included or excluded below &mdash; homography DLT per view,
+          shared intrinsics from the image-of-the-absolute-conic constraints, then Levenberg-Marquardt refinement
+          of intrinsics and all poses jointly against total reprojection error.
+        </p>
+
+        <div id="summary-error" class="banner banner-error" hidden></div>
+
+        <div class="summary-grid">
+          <div class="summary-panel">
+            <h3>board</h3>
+            <table class="kv-table">
+              <tr><td>inner corners</td><td id="board-corners">&ndash;</td></tr>
+              <tr><td>square size</td><td id="board-square">&ndash;</td></tr>
+              <tr><td>included views</td><td id="board-included">&ndash;</td></tr>
+            </table>
+          </div>
+
+          <div class="summary-panel">
+            <h3>intrinsics K</h3>
+            <pre class="matrix" id="intrinsics-matrix">&ndash;</pre>
+          </div>
+
+          <div class="summary-panel">
+            <h3>parameters</h3>
+            <table class="kv-table">
+              <tr><td>fx</td><td id="param-fx">&ndash;</td></tr>
+              <tr><td>fy</td><td id="param-fy">&ndash;</td></tr>
+              <tr><td>cx</td><td id="param-cx">&ndash;</td></tr>
+              <tr><td>cy</td><td id="param-cy">&ndash;</td></tr>
+              <tr><td>skew</td><td id="param-skew">&ndash;</td></tr>
+              <tr class="kv-highlight"><td>overall RMS</td><td id="param-rms">&ndash;</td></tr>
+            </table>
+            <div class="pass-fail" id="pass-fail"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cell" id="cell-overlay">
+      <div class="tag">In [2]</div>
+      <div class="body">
+        <h2>2. Reprojection Overlay</h2>
+        <p class="desc">
+          <span class="swatch swatch-round" style="background:#3ddc70"></span> observed corner (from
+          <code>observations.csv</code>) &mdash;
+          <span class="swatch swatch-round" style="background:#ff5d5d"></span> corner reprojected through the
+          current intrinsics + this view's pose &mdash; the line between them is the reprojection error. A good fit
+          makes the red and green dots nearly coincide. Pick a view from the table below.
+        </p>
+        <div class="overlay-toolbar">
+          <span id="overlay-title">no view selected</span>
+          <span id="overlay-rms" class="overlay-rms"></span>
+          <span id="overlay-refined-note" class="overlay-note"></span>
+        </div>
+        <div class="overlay-wrap" id="overlay-wrap">
+          <img id="overlay-image" alt="calibration view" />
+          <canvas id="overlay-canvas"></canvas>
+        </div>
+        <div class="corner-readout" id="corner-readout">hover a corner marker to inspect it</div>
+      </div>
+    </section>
+
+    <section class="cell" id="cell-views">
+      <div class="tag">In [3]</div>
+      <div class="body">
+        <h2>3. Per-View Error &amp; Include / Exclude</h2>
+        <p class="desc">
+          Uncheck a view to drop it from calibration and rerun everything above (intrinsics, RMS, every view's
+          reprojection) without it. Click a row to load it into the overlay above. Rows flagged
+          <span class="suspicious-tag">suspicious</span> have a reprojection error well above the rest of the set
+          &mdash; a good candidate to exclude and see whether the fit improves.
+        </p>
+        <table class="view-table" id="view-table">
+          <thead>
+            <tr>
+              <th class="col-check"></th>
+              <th>image</th>
+              <th>reprojection RMS</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="view-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

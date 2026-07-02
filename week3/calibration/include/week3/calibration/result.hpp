@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
@@ -36,5 +37,10 @@ struct Error
 {
     std::string message;
 };
+
+// A Rust-flavored `Option<T>`, spelled out for readability at call sites
+// that would otherwise read as a bare `std::optional`.
+template <class T>
+using Option = std::optional<T>;
 
 }  // namespace week3

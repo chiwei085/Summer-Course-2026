@@ -595,4 +595,37 @@ Result<CalibrationReport, Error> calibrate_camera(
     });
 }
 
+Result<CameraPose, Error> estimate_view_pose(const BoardSpec& board,
+                                             const ImageObservations& image,
+                                             const Intrinsics& intrinsics) {
+    auto homography = estimate_homography(board, image);
+    if (homography.is_err()) {
+        return Result<CameraPose, Error>::err(homography.error());
+    }
+    return Result<CameraPose, Error>::ok(
+        estimate_pose(intrinsics, homography.value()));
+}
+
+std::vector<CornerReprojection> reproject_view(const BoardSpec& board,
+                                               const ImageObservations& image,
+                                               const Intrinsics& intrinsics,
+                                               const CameraPose& pose) {
+    std::vector<CornerReprojection> out;
+    out.reserve(image.corners.size());
+    for (const auto& corner : image.corners) {
+        const Vec2 predicted =
+            project(intrinsics, pose, board_point(board, corner));
+        const double dx = predicted.x - corner.pixel.x;
+        const double dy = predicted.y - corner.pixel.y;
+        out.push_back({
+            .row = corner.row,
+            .col = corner.col,
+            .observed = corner.pixel,
+            .reprojected = predicted,
+            .error_px = std::hypot(dx, dy),
+        });
+    }
+    return out;
+}
+
 }  // namespace week3

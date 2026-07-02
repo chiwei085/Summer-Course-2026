@@ -110,7 +110,8 @@ Result<std::vector<double>, Error> solve_spd(Matrix a, std::vector<double> b) {
                                     "definite"});
                 }
                 lower(i, i) = std::sqrt(sum);
-            } else {
+            }
+            else {
                 lower(i, j) = sum / lower(j, j);
             }
         }

@@ -65,4 +65,33 @@ struct CalibrationReport
 [[nodiscard]] Result<CalibrationReport, Error> calibrate_camera(
     const CalibrationDataset& dataset);
 
+// One observed/reprojected corner pair, for rendering a reprojection overlay
+// over a single calibration image.
+struct CornerReprojection
+{
+    int row{0};
+    int col{0};
+    linalg::Vec2 observed{};
+    linalg::Vec2 reprojected{};
+    double error_px{0.0};
+};
+
+// Closed-form pose estimate for a single view against already-known
+// intrinsics: re-estimates that view's homography from its own
+// observations, then decomposes it the same way `calibrate_camera` does.
+// Unlike `ViewCalibration::pose` (which comes out of the joint nonlinear
+// refinement across all included views), this never sees any other view, so
+// it's the right tool for visualizing a view that has been excluded from
+// calibration.
+[[nodiscard]] Result<CameraPose, Error> estimate_view_pose(
+    const BoardSpec& board, const ImageObservations& image,
+    const Intrinsics& intrinsics);
+
+// Reprojects every corner of `image` under `intrinsics`/`pose` and pairs
+// each prediction with its observed pixel, for driving a reprojection-error
+// overlay in a UI.
+[[nodiscard]] std::vector<CornerReprojection> reproject_view(
+    const BoardSpec& board, const ImageObservations& image,
+    const Intrinsics& intrinsics, const CameraPose& pose);
+
 }  // namespace week3
