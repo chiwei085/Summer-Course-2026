@@ -1,0 +1,3 @@
+cols=9
+rows=6
+square_size=1.0
