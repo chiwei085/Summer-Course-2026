@@ -1,0 +1,75 @@
+<mxfile host="app.diagrams.net" modified="2026-07-02T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="visual-relay-topology" name="Architecture">
+    <mxGraphModel dx="1180" dy="720" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="920" pageHeight="540" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Visual Relay Container Topology" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=18;fontStyle=1;fontColor=#0B0B0B;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="320" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="simulator" value="&lt;b&gt;relay-simulator&lt;/b&gt;&lt;br&gt;conveyor world • camera GUI" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F4F3F0;strokeColor=#0B0B0B;strokeWidth=2;fontFamily=Helvetica;fontSize=15;fontColor=#0B0B0B;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="340" y="78" width="240" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="scout" value="&lt;b&gt;scout-station&lt;/b&gt;&lt;br&gt;entry camera • tracking" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F4F3F0;strokeColor=#0B0B0B;strokeWidth=2;fontFamily=Helvetica;fontSize=15;fontColor=#0B0B0B;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="382" width="230" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="catcher" value="&lt;b&gt;catcher-station&lt;/b&gt;&lt;br&gt;exit camera • intercept" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F4F3F0;strokeColor=#0B0B0B;strokeWidth=2;fontFamily=Helvetica;fontSize=15;fontColor=#0B0B0B;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="590" y="382" width="230" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="camera-scout" value="" style="endArrow=block;html=1;rounded=0;strokeWidth=3;strokeColor=#2A78D6;endFill=1;" edge="1" parent="1" source="simulator" target="scout">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="380" y="170" as="sourcePoint" />
+            <mxPoint x="240" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="camera-catcher" value="" style="endArrow=block;html=1;rounded=0;strokeWidth=3;strokeColor=#2A78D6;endFill=1;" edge="1" parent="1" source="simulator" target="catcher">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="540" y="170" as="sourcePoint" />
+            <mxPoint x="680" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="control-scout" value="" style="endArrow=block;html=1;rounded=0;strokeWidth=3;strokeColor=#EB6834;endFill=1;edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;jettySize=auto;" edge="1" parent="1" source="scout" target="simulator">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="100" y="410" as="sourcePoint" />
+            <mxPoint x="340" y="105" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="48" y="421" />
+              <mxPoint x="48" y="118" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="control-catcher" value="" style="endArrow=block;html=1;rounded=0;strokeWidth=3;strokeColor=#EB6834;endFill=1;edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;jettySize=auto;" edge="1" parent="1" source="catcher" target="simulator">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="820" y="410" as="sourcePoint" />
+            <mxPoint x="580" y="105" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="872" y="421" />
+              <mxPoint x="872" y="118" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="handoff" value="" style="endArrow=block;html=1;rounded=0;strokeWidth=3;strokeColor=#0F7D54;endFill=1;" edge="1" parent="1" source="scout" target="catcher">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="330" y="421" as="sourcePoint" />
+            <mxPoint x="590" y="421" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="camera-scout-label" value="camera-net&lt;br&gt;(RGB chunks)" style="text;html=1;strokeColor=none;fillColor=#FCFCFB;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=13;fontColor=#52514E;spacing=4;" vertex="1" parent="1">
+          <mxGeometry x="190" y="236" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="camera-catcher-label" value="camera-net&lt;br&gt;(RGB chunks)" style="text;html=1;strokeColor=none;fillColor=#FCFCFB;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=13;fontColor=#52514E;spacing=4;" vertex="1" parent="1">
+          <mxGeometry x="610" y="236" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="control-scout-label" value="control-net&lt;br&gt;(control lease)" style="text;html=1;strokeColor=none;fillColor=#FCFCFB;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=13;fontColor=#52514E;spacing=4;" vertex="1" parent="1">
+          <mxGeometry x="75" y="192" width="128" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="control-catcher-label" value="control-net&lt;br&gt;(control lease)" style="text;html=1;strokeColor=none;fillColor=#FCFCFB;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=13;fontColor=#52514E;spacing=4;" vertex="1" parent="1">
+          <mxGeometry x="717" y="192" width="128" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="handoff-label" value="handoff-net&lt;br&gt;(UDP + TCP)" style="text;html=1;strokeColor=none;fillColor=#FCFCFB;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=13;fontColor=#52514E;spacing=4;" vertex="1" parent="1">
+          <mxGeometry x="396" y="357" width="128" height="44" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

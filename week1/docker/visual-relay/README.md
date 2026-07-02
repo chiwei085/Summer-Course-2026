@@ -20,71 +20,69 @@ headless GUI fallback.
 
 ## What You Will Run
 
-```text
-relay-simulator  GUI conveyor world, camera datagrams, control lease
-scout-station    GUI first-person camera receiver, UDP updates, TCP handoff sender
-catcher-station  GUI first-person camera receiver, UDP stale checks, TCP handoff receiver
+Three containers, three isolated Docker networks, one data plane per network:
+
+![Visual Relay container topology: relay-simulator streams camera-net to both stations, scout-station and catcher-station hold a control-net lease back to relay-simulator, and scout-station hands off to catcher-station over handoff-net.](docs/architecture.png)
+
+- **camera-net** — `relay-simulator` streams RGB camera datagrams to both stations.
+- **handoff-net** — `scout-station` sends UDP track updates and a TCP identity
+  handoff to `catcher-station`.
+- **control-net** — the stations hold a control lease back with `relay-simulator`.
+
+## 1. Run It
+
+If the scripts are not executable after checkout, fix their permissions first:
+
+```bash
+chmod +x scripts/*.sh grader/*.sh
 ```
-
-Networks are split by data plane:
-
-```text
-camera-net   simulator -> scout/catcher camera stream
-handoff-net  scout <-> catcher UDP updates and TCP identity handoff
-control-net  scout/catcher -> simulator control lease
-```
-
-## Start The System
-
-From this directory:
 
 ```bash
 ./scripts/run-gui.sh
 ```
 
 The script chooses Wayland when a Wayland socket is available, otherwise it uses
-X11/XWayland. It builds the images and starts all three runtime services.
+X11/XWayland. It builds the images and starts all three runtime services. All
+three receive the host GUI resources needed by SDL3. The simulator owns the
+conveyor display; `scout-station` and `catcher-station` render only their
+respective camera streams and overlays.
 
-Explicit Wayland:
-
-```bash
-docker compose --profile runtime -f compose.yaml -f compose.gui-wayland.yaml up --build
-```
-
-Explicit X11:
-
-```bash
-docker compose --profile runtime -f compose.yaml -f compose.gui-x11.yaml up --build
-```
-
-All three runtime services receive the host GUI resources needed by SDL3. The
-simulator owns the conveyor display; `scout-station` and `catcher-station`
-render only their respective camera streams and overlays.
-
-## Stop And Clean Up
+Stop it with:
 
 ```bash
 docker compose --profile runtime down --remove-orphans
 ```
 
-## Run The Checks
-
-Static and protocol checks:
+## 2. Grade It
 
 ```bash
-python3 grader/check_static.py
-cmake -S . -B build/protocol -G Ninja -DVISUAL_RELAY_BUILD_APPS=OFF
-cmake --build build/protocol
-ctest --test-dir build/protocol --output-on-failure
+./grader/grade.sh
 ```
 
-Container test target:
+This is the only check you need to run. It builds and exercises your container
+setup end to end and prints one scored report:
 
-```bash
-docker compose --profile grader up --build --abort-on-container-exit
+```text
+Phase 1  static Dockerfile/compose design       (multi-stage builds, cache mounts,
+                                                  network separation, non-root users,
+                                                  resource limits, healthchecks, ...)
+Phase 2  containerized build + unit tests        (protocol/scene tests run inside Docker)
+Phase 3  runtime image hygiene                   (no compilers/sources leak into runtime images)
+Phase 4  runtime health                          (all three services boot and pass healthchecks)
+Phase 5  automated fault recovery                (UDP pause, TCP handoff cut, service restarts)
 ```
 
-Runtime and fault checks:
+Every check prints `[PASS]` or `[FAIL]` with what it found, and the script
+ends with a `TOTAL SCORE: passed/total`. A perfect score means the container
+design is complete; any `[FAIL]` line tells you exactly what to fix. Phases 4
+and 5 start the real GUI containers (same as `run-gui.sh`) and tear them down
+automatically when the script exits.
+
+## Manual Fault Injection (Optional)
+
+`grade.sh` already runs these scenarios for you. If you want to trigger one
+by hand while watching the GUI windows, start the system with `run-gui.sh` in
+one terminal and run this in another:
 
 ```bash
 ./scripts/inject-network-fault.sh udp-loss 2
@@ -93,21 +91,3 @@ Runtime and fault checks:
 ./scripts/inject-network-fault.sh catcher-restart
 ./scripts/inject-network-fault.sh simulator-restart
 ```
-
-## What To Notice
-
-- Multi-stage Docker builds with separate runtime targets.
-- Docker BuildKit cache mounts and ccache.
-- A pinned source build for SDL3 in the dependencies stage.
-- Non-root runtime users, read-only root filesystems, tmpfs `/tmp`, resource limits.
-- Service DNS instead of hard-coded container IPs.
-- Separate UDP and TCP planes for realtime estimates and reliable handoff.
-- Healthchecks based on readiness marks, not fixed sleep delays.
-- A small project-owned C++20 socket wrapper, `rik_asio`.
-- GUI display integration for Wayland and X11 without privileged containers.
-
-The simulator produces deterministic raw RGB camera datagrams and renders the
-full conveyor world through SDL3. The workstation windows display those
-simulator-published first-person camera pixels, then add local overlays. The
-station camera views are horizontally mirrored relative to the simulator world
-overview and render the rear face of objects, matching the robot camera poses.

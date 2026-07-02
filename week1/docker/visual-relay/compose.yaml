@@ -105,18 +105,6 @@ services:
           cpus: "1.0"
           memory: 512M
 
-  grader:
-    build:
-      context: .
-      target: test
-    image: visual-relay/grader:reference
-    profiles: ["grader"]
-    command: ["python3", "/src/grader/check_static.py"]
-    working_dir: /src
-    volumes:
-      - .:/src:ro
-    networks: []
-
 networks:
   camera-net:
     internal: true
