@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>week3/color notebook</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header class="notebook-header">
+    <h1>week3 / color &mdash; RGB Intensity, Histogram, HSV Cube &amp; Cone</h1>
+    <p>C++20 backend (Mongoose), no OpenCV &mdash.</p>
+  </header>
+
+  <main>
+    <section class="cell" id="cell-intensity">
+      <div class="tag">In [1]</div>
+      <div class="body">
+        <h2>1. RGB &rarr; Intensity</h2>
+        <p class="desc">Three classic ways to collapse RGB into one channel. Click the source image to sample a pixel
+          &mdash; it also feeds the HSV cell below.</p>
+        <div class="controls">
+          <label>method
+            <select id="intensity-method">
+              <option value="luminosity">luminosity (0.299R+0.587G+0.114B)</option>
+              <option value="average">average ((R+G+B)/3)</option>
+              <option value="lightness">lightness ((max+min)/2)</option>
+            </select>
+          </label>
+        </div>
+        <div class="image-pair">
+          <figure>
+            <figcaption>source</figcaption>
+            <img id="source-image" src="/api/image?max_width=480" alt="source" />
+          </figure>
+          <figure>
+            <figcaption>intensity</figcaption>
+            <img id="intensity-image" src="/api/intensity?method=luminosity&max_width=480" alt="intensity" />
+          </figure>
+        </div>
+        <div class="pixel-readout" id="pixel-readout">click the source image to sample a pixel</div>
+      </div>
+    </section>
+
+    <section class="cell" id="cell-histogram">
+      <div class="tag">In [2]</div>
+      <div class="body">
+        <h2>2. Histogram</h2>
+        <p class="desc">
+          Each panel has <strong>256 bins</strong>, one per 8-bit value 0&ndash;255. A bin's height is the
+          <em>count</em> of pixels whose value landed in it &mdash; hover a panel to read a bin's exact
+          value and count. Sample a pixel in cell 1 to see its value marked here.
+        </p>
+        <div class="controls">
+          <label><input type="checkbox" id="hist-red" checked /> show R</label>
+          <label><input type="checkbox" id="hist-green" checked /> show G</label>
+          <label><input type="checkbox" id="hist-blue" checked /> show B</label>
+          <label><input type="checkbox" id="hist-intensity" checked /> show Intensity</label>
+        </div>
+
+        <div class="hist-grid">
+          <div class="hist-panel" id="panel-red">
+            <div class="hist-panel-title"><span class="swatch" style="background:#ff6f6f"></span>Red channel</div>
+            <canvas id="hist-canvas-red" width="440" height="170"></canvas>
+            <div class="hist-readout" id="readout-red">hover to inspect a bin</div>
+          </div>
+          <div class="hist-panel" id="panel-green">
+            <div class="hist-panel-title"><span class="swatch" style="background:#79e07f"></span>Green channel</div>
+            <canvas id="hist-canvas-green" width="440" height="170"></canvas>
+            <div class="hist-readout" id="readout-green">hover to inspect a bin</div>
+          </div>
+          <div class="hist-panel" id="panel-blue">
+            <div class="hist-panel-title"><span class="swatch" style="background:#5eb0ff"></span>Blue channel</div>
+            <canvas id="hist-canvas-blue" width="440" height="170"></canvas>
+            <div class="hist-readout" id="readout-blue">hover to inspect a bin</div>
+          </div>
+          <div class="hist-panel hist-panel-derived" id="panel-intensity">
+            <div class="hist-panel-title"><span class="swatch" style="background:#dcdcdc"></span>Intensity
+              <span class="derived-badge">derived, not a sensor channel</span>
+            </div>
+            <canvas id="hist-canvas-intensity" width="440" height="170"></canvas>
+            <div class="hist-readout" id="readout-intensity">hover to inspect a bin</div>
+          </div>
+        </div>
+        <p class="note">
+          Intensity isn't captured by the camera like R, G, B &mdash; it's computed from them (see the method
+          picker in cell 1). Its panel is dashed to mark that difference.
+        </p>
+
+        <div class="hist-spatial-demo">
+          <h3>A histogram throws away <em>where</em> pixels are</h3>
+          <p class="desc">
+            Shuffling every pixel's position produces a completely different-looking image with the
+            <em>exact same</em> histogram &mdash; counting values doesn't care about their arrangement.
+          </p>
+          <div class="controls">
+            <button id="shuffle-btn">shuffle pixel positions</button>
+            <span id="shuffle-status" class="hist-readout"></span>
+          </div>
+          <div class="image-pair">
+            <figure>
+              <figcaption>original</figcaption>
+              <canvas id="shuffle-original" width="240" height="180"></canvas>
+            </figure>
+            <figure>
+              <figcaption>shuffled (same pixels, random positions)</figcaption>
+              <canvas id="shuffle-shuffled" width="240" height="180"></canvas>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cell" id="cell-hsv">
+      <div class="tag">In [3]</div>
+      <div class="body">
+        <h2>3. RGB Cube &harr; HSV Cone</h2>
+        <p class="desc">Drag either the RGB sliders or the HSV sliders / hue wheel &mdash; both markers stay linked
+          through the backend's <code>rgb_to_hsv</code> / <code>hsv_to_rgb</code>. The hue wheel and the wrap-demo
+          button exercise the 0&deg;/360&deg; red seam explicitly.</p>
+
+        <div class="hsv-grid">
+          <div class="hsv-panel">
+            <h3>RGB cube</h3>
+            <canvas id="cube-canvas" width="320" height="300"></canvas>
+            <div class="slider-row"><span>R</span><input type="range" id="slider-r" min="0" max="255"
+                value="255" /><span id="val-r">255</span></div>
+            <div class="slider-row"><span>G</span><input type="range" id="slider-g" min="0" max="255" value="0" /><span
+                id="val-g">0</span></div>
+            <div class="slider-row"><span>B</span><input type="range" id="slider-b" min="0" max="255" value="0" /><span
+                id="val-b">0</span></div>
+          </div>
+
+          <div class="hsv-panel">
+            <h3>HSV cone</h3>
+            <canvas id="cone-canvas" width="320" height="300"></canvas>
+            <div class="hue-wheel-wrap">
+              <canvas id="hue-wheel" width="220" height="220"></canvas>
+            </div>
+            <div class="slider-row"><span>H</span><input type="range" id="slider-h" min="0" max="359" value="0" /><span
+                id="val-h">0&deg;</span></div>
+            <div class="slider-row"><span>S</span><input type="range" id="slider-s" min="0" max="100"
+                value="100" /><span id="val-s">100%</span></div>
+            <div class="slider-row"><span>V</span><input type="range" id="slider-v" min="0" max="100"
+                value="100" /><span id="val-v">100%</span></div>
+          </div>
+        </div>
+
+        <div class="color-preview" id="color-preview"></div>
+        <div class="controls">
+          <button id="wrap-demo">demo: sweep hue 350&deg; &rarr; 10&deg; (through red)</button>
+        </div>
+        <p class="note" id="wrap-note">Hue is stored mod 360 on both ends: dragging the wheel across the top (north) or
+          sweeping from 350&deg; to 10&deg; takes the 20&deg; short way through red, never the 340&deg; long way through
+          cyan.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
