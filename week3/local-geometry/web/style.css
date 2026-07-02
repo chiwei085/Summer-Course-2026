@@ -1,0 +1,218 @@
+:root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-alt: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #8b93a3;
+    --accent: #5eb0ff;
+    --accent-2: #ff6f6f;
+    --good: #3ddc70;
+    --bad: #ff5d5d;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+}
+
+header.notebook-header {
+    padding: 28px 40px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+header.notebook-header h1 {
+    margin: 0 0 6px;
+    font-size: 22px;
+}
+
+header.notebook-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 24px 40px 80px;
+}
+
+.cell {
+    display: grid;
+    grid-template-columns: 68px 1fr;
+    margin-bottom: 28px;
+}
+
+.cell .tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    padding-top: 14px;
+    white-space: nowrap;
+}
+
+.cell .body {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 22px;
+}
+
+.cell h2 {
+    margin: 0 0 4px;
+    font-size: 16px;
+}
+
+.cell .desc {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0 0 16px;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+    margin-bottom: 14px;
+    font-size: 13px;
+}
+
+.controls label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-family: var(--mono);
+}
+
+.controls input[type="range"] {
+    width: 140px;
+}
+
+.image-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.image-pair figure {
+    margin: 0;
+}
+
+.image-pair figcaption {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.image-pair img {
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: block;
+}
+
+.note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+    border-left: 2px solid var(--accent);
+    padding-left: 10px;
+}
+
+.overlay-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--panel-alt);
+}
+
+.overlay-wrap img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.overlay-wrap canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    cursor: crosshair;
+}
+
+.readout {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+}
+
+.math-block {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.math-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.math-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.math-row .eq {
+    overflow-x: auto;
+}
+
+.katex { color: var(--text); }
+
+.eig-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+.eig-table th,
+.eig-table td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.eig-table th {
+    background: var(--panel-alt);
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.eig-table td:first-child,
+.eig-table td:nth-child(2) {
+    font-family: var(--mono);
+    color: var(--accent);
+}
