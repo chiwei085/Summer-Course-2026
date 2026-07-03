@@ -108,6 +108,7 @@ const snakeIterationsVal = document.getElementById("snake-iterations-val");
 const snakePointsVal = document.getElementById("snake-points-val");
 
 const snakeRunBtn = document.getElementById("snake-run");
+const snakeDownloadBtn = document.getElementById("snake-download");
 const snakeStatus = document.getElementById("snake-status");
 const snakeImage = document.getElementById("snake-image");
 const snakeCanvas = document.getElementById("snake-canvas");
@@ -212,7 +213,39 @@ function setPlaybackEnabled(enabled) {
   snakeStepBackBtn.disabled = !enabled;
   snakeStepFwdBtn.disabled = !enabled;
   snakeFrameSlider.disabled = !enabled;
+  snakeDownloadBtn.disabled = !enabled;
 }
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadSnakeResult() {
+  if (snakeFrames.length === 0) return;
+  const composite = document.createElement("canvas");
+  composite.width = snakeCanvas.width;
+  composite.height = snakeCanvas.height;
+  const ctx = composite.getContext("2d");
+  ctx.drawImage(snakeImage, 0, 0, composite.width, composite.height);
+  ctx.drawImage(snakeCanvas, 0, 0);
+
+  const blob = await new Promise((resolve) => composite.toBlob(resolve, "image/png"));
+  downloadBlob(blob, `snake-result-image${currentImageId}.png`);
+
+  const prevStatus = snakeStatus.textContent;
+  snakeStatus.textContent = "downloaded result image";
+  setTimeout(() => {
+    snakeStatus.textContent = prevStatus;
+  }, 3000);
+}
+snakeDownloadBtn.addEventListener("click", downloadSnakeResult);
 
 async function runSnake() {
   stopPlayback();
