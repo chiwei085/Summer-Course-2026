@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>week3/homework notebook &mdash; Snake (Active Contour)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header class="notebook-header">
+    <h1>week3 / homework &mdash; Snake (Active Contour)</h1>
+    <p>C++20 backend (Mongoose), no OpenCV &mdash; grayscale, Gaussian blur, Sobel gradients, Otsu thresholding, and
+      the greedy snake solver are all implemented from scratch. Pick a sample image; every cell below reacts to it.
+    </p>
+    <div class="image-select" id="image-select">
+      <label><input type="radio" name="image" value="1" checked /><span>image 1 &mdash; temari ball (easy)</span></label>
+      <label><input type="radio" name="image" value="2" /><span>image 2 &mdash; remote control (medium)</span></label>
+      <label><input type="radio" name="image" value="3" /><span>image 3 &mdash; stapler (hard)</span></label>
+    </div>
+  </header>
+
+  <main>
+    <section class="cell" id="cell-foundation">
+      <div class="tag">In [0]</div>
+      <div class="body">
+        <h2>0. Shared Foundation: Grayscale, Gaussian Blur &amp; Sobel Gradient</h2>
+        <p class="desc">
+          Every algorithm below starts here: convert to grayscale (BT.601 luma), smooth it with a hand-rolled
+          separable Gaussian blur (removes background texture noise before anything looks for edges), then convolve
+          with the 3&times;3 Sobel kernels to get the gradient magnitude &mdash; the "how strong is the edge here"
+          field both the initial-contour finder and the snake's external energy read from.
+        </p>
+        <div class="controls">
+          <label>blur &sigma;
+            <input type="range" id="found-sigma" min="0" max="6" step="0.1" value="1.5" />
+            <span id="found-sigma-val">1.5</span>
+          </label>
+        </div>
+        <div class="image-triplet">
+          <figure>
+            <figcaption>source</figcaption>
+            <img id="found-source" alt="source" />
+          </figure>
+          <figure>
+            <figcaption>blurred grayscale</figcaption>
+            <img id="found-grayscale" alt="blurred grayscale" />
+          </figure>
+          <figure>
+            <figcaption>Sobel gradient magnitude</figcaption>
+            <img id="found-gradient" alt="gradient magnitude" />
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="cell" id="cell-init">
+      <div class="tag">In [1]</div>
+      <div class="body">
+        <h2>1. A Strong Automatic Initial Contour</h2>
+        <p class="desc">
+          A snake only converges to the boundary it starts near, and the three sample images range from "nearly a
+          circle on a plain background" to "busy background, specular highlights competing with the true edge" -- so
+          picking the initial contour by hand (or as a fixed centered circle) won't hold up across all three. Instead
+          this uses a small automatic pipeline with no manual seed point, in its own header
+          (<code>initial_contour.hpp</code>) independent of the snake solver itself:
+        </p>
+        <ol class="desc" style="margin: 0 0 16px; padding-left: 20px;">
+          <li>blur, then Sobel gradient magnitude (cell 0's output)</li>
+          <li>normalize by the <em>99th-percentile</em> magnitude (not the raw max -- a few specular-highlight
+            pixels shouldn't compress every other edge toward zero) and threshold with <strong>Otsu's method</strong>,
+            which picks the cut that maximizes between-class variance over the magnitude histogram -- no manual
+            threshold per image</li>
+          <li>a few rounds of binary dilation bridge small gaps in the silhouette</li>
+          <li>4-connected component labeling finds candidate blobs; the largest one whose bounding box is a
+            "plausible object" fraction of the frame (not background noise, not the whole image merged into one
+            blob) is kept</li>
+          <li>its bounding box is shrunk slightly toward its centroid and an ellipse is fit and resampled into the
+            snake's starting points</li>
+        </ol>
+        <p class="note">The contour starts slightly <em>inside</em> the true boundary on purpose: the snake's image
+          energy then pulls it outward onto the edge, a more stable approach than starting outside and pulling
+          inward across background clutter.</p>
+        <div class="image-triplet">
+          <figure>
+            <figcaption>image 1 (easy)</figcaption>
+            <div class="overlay-wrap" id="init-wrap-1">
+              <img id="init-image-1" alt="image 1 source" />
+              <canvas id="init-canvas-1"></canvas>
+            </div>
+          </figure>
+          <figure>
+            <figcaption>image 2 (medium)</figcaption>
+            <div class="overlay-wrap" id="init-wrap-2">
+              <img id="init-image-2" alt="image 2 source" />
+              <canvas id="init-canvas-2"></canvas>
+            </div>
+          </figure>
+          <figure>
+            <figcaption>image 3 (hard)</figcaption>
+            <div class="overlay-wrap" id="init-wrap-3">
+              <img id="init-image-3" alt="image 3 source" />
+              <canvas id="init-canvas-3"></canvas>
+            </div>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="cell" id="cell-snake">
+      <div class="tag">In [2]</div>
+      <div class="body">
+        <h2>2. The Snake: Greedy Active Contour</h2>
+        <p class="desc">
+          The basic/greedy snake (Williams &amp; Shah, 1992): every contour point independently searches a small
+          neighborhood each iteration for the position minimizing a weighted sum of three energies, and jumps
+          straight there -- no matrix solve, which is exactly what makes it easy to watch converge frame by frame.
+        </p>
+        <div class="math-block">
+          <div class="math-row">
+            <span class="math-label">continuity (&alpha;)</span>
+            <span class="eq">E<sub>cont</sub> = (d&#772; &minus; |p<sub>i&minus;1</sub> &minus; p<sub>i</sub>|)&sup2;
+              &mdash; keeps points evenly spaced at the contour's average spacing d&#772;</span>
+          </div>
+          <div class="math-row">
+            <span class="math-label">curvature (&beta;)</span>
+            <span class="eq">E<sub>curv</sub> = |p<sub>i&minus;1</sub> &minus; 2p<sub>i</sub> +
+              p<sub>i+1</sub>|&sup2; &mdash; the discrete 2nd derivative; keeps the contour smooth</span>
+          </div>
+          <div class="math-row">
+            <span class="math-label">image (&gamma;)</span>
+            <span class="eq">E<sub>image</sub> = &minus;&Vert;&nabla;I&Vert; &mdash; pulls points toward strong
+              gradient magnitude (edges)</span>
+          </div>
+        </div>
+        <p class="desc">
+          Each term is rescaled to [0, 1] within a point's own candidate window before combining, so the alpha/beta/
+          gamma sliders below weight comparable quantities. Every image's starting values come straight from its
+          <code>config::ImageConfig</code> instantiation in <code>config.hpp</code> -- change them here to explore,
+          or edit the header to change the default.
+        </p>
+        <div class="controls">
+          <label>&alpha; continuity
+            <input type="range" id="snake-alpha" min="0" max="3" step="0.05" value="0.5" />
+            <span id="snake-alpha-val">0.50</span>
+          </label>
+          <label>&beta; curvature
+            <input type="range" id="snake-beta" min="0" max="3" step="0.05" value="0.5" />
+            <span id="snake-beta-val">0.50</span>
+          </label>
+          <label>&gamma; image
+            <input type="range" id="snake-gamma" min="0" max="4" step="0.05" value="1.3" />
+            <span id="snake-gamma-val">1.30</span>
+          </label>
+          <label>energy blur &sigma;
+            <input type="range" id="snake-energy-sigma" min="0" max="6" step="0.1" value="2.0" />
+            <span id="snake-energy-sigma-val">2.0</span>
+          </label>
+          <label>search radius
+            <input type="range" id="snake-search-radius" min="1" max="6" step="1" value="2" />
+            <span id="snake-search-radius-val">2</span>
+          </label>
+          <label>iterations
+            <input type="range" id="snake-iterations" min="10" max="300" step="10" value="120" />
+            <span id="snake-iterations-val">120</span>
+          </label>
+          <label>points
+            <input type="range" id="snake-points" min="20" max="160" step="5" value="80" />
+            <span id="snake-points-val">80</span>
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn primary" id="snake-run">&#9654; Run snake</button>
+          <span class="readout" id="snake-status">idle -- click Run to solve, then play back the animation</span>
+        </div>
+        <div class="overlay-wrap" id="snake-wrap">
+          <img id="snake-image" alt="snake source" />
+          <canvas id="snake-canvas"></canvas>
+        </div>
+        <div class="playback">
+          <button class="btn" id="snake-play" disabled>&#9654; Play</button>
+          <button class="btn" id="snake-step-back" disabled>&#9664; step</button>
+          <button class="btn" id="snake-step-fwd" disabled>step &#9654;</button>
+          <div class="frame-slider">
+            <input type="range" id="snake-frame" min="0" max="0" step="1" value="0" disabled />
+          </div>
+          <span class="frame-label" id="snake-frame-label">frame 0 / 0</span>
+          <label>speed
+            <input type="range" id="snake-speed" min="1" max="60" step="1" value="24" style="width: 90px" />
+            <span id="snake-speed-val">24</span> fps
+          </label>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
