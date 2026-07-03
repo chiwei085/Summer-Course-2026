@@ -1,0 +1,8 @@
+# Example user-supplied config (YOLO-style): only overrides what differs
+# from configs/default.yaml. Pass with `--config configs/mlp_classify.yaml`.
+model: mlp
+hidden_dims: [32, 16]
+epochs: 140
+lr: 0.1
+batch_size: 0
+seed: 4

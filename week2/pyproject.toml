@@ -1,37 +1,35 @@
 [project]
 name = "week2"
 version = "0.1.0"
-description = "Deep Learning Course Notebook"
+description = "Deep Learning Course"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "datasets[vision]>=4.4.1",
+    "matplotlib>=3.10.8",
+    "pandas>=3.0.3",
+    "pyyaml>=6.0.3",
+    "questionary>=2.1.1",
+    "torch>=2.11.0",
+    "torchvision>=0.26.0",
+    "tqdm>=4.67.1",
+    "transformers>=5.12.1",
+    "typer>=0.25.1",
+]
 
 [tool.ruff]
 target-version = "py314"
 line-length = 100
-extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
-ignore = [
-    "B018", # Keep final expressions useful in teaching notebooks.
-]
+ignore = ["B018"]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 
-[dependency-groups]
-dev = [
-    "datasets[vision]>=4.4.1",
-    "ipykernel>=7.3.0",
-    "matplotlib>=3.10.8",
-    "torch>=2.11.0",
-    "torchvision>=0.26.0",
-    "tqdm>=4.67.1",
-    "transformers>=5.12.1",
-]
 
 [tool.uv.sources]
 torch = [

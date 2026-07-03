@@ -1,0 +1,6 @@
+# Step 1 of LESSON.md: linear classifier, species from bill_length/flipper_length.
+# task/model already match configs/default.yaml.
+epochs: 100
+lr: 0.1
+batch_size: 0
+seed: 3

@@ -1,0 +1,15 @@
+# Default hyperparameters for `src.train`, modeled after Ultralytics YOLO's
+# `default.yaml`: every CLI flag has a matching key here, and any value not
+# passed on the command line falls back to what's written in this file.
+#
+# Resolution order (highest wins): CLI flag > `--config <path>` > this file.
+
+task: classify        # classify | regress
+model: linear          # linear | mlp
+hidden_dims: [16]      # ignored when model: linear
+epochs: 50
+lr: 0.05
+batch_size: 32         # 0 means full-batch gradient descent
+seed: 0
+run_id: null           # auto-generated if omitted
+device: null           # cuda | cpu; auto-detected if omitted

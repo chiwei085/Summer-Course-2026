@@ -1,1 +1,3 @@
-notebooks/models/
+DESIGN.md
+*/artifacts/
+__pycache__/

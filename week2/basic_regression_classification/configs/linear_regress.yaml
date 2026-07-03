@@ -1,0 +1,5 @@
+# Step 5 of LESSON.md: linear regression, body_mass_g from bill/flipper measurements.
+task: regress
+model: linear
+epochs: 80
+batch_size: 0

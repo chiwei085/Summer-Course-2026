@@ -1,0 +1,5 @@
+# Step 5 of LESSON.md: MLP regression, body_mass_g from bill/flipper measurements.
+task: regress
+model: mlp
+hidden_dims: [64, 32]
+epochs: 80
