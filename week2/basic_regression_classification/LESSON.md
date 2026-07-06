@@ -1,5 +1,7 @@
 # basic_regression_classification
 
+這其實就是 BC（behavior cloning）最簡單的樣子：把 state 換成企鵝的量測值、action 換成 species/體重，拿掉「視覺」「語言」「時間序列」之後剩下的骨架，就是這裡的線性模型/MLP + loss + gradient + SGD。
+
 **對應主線**：Part 1（函數）+ Part 2（最佳化）   
 **資料集**：[Palmer Penguins](https://huggingface.co/datasets/SIH/palmer-penguins)（344 隻企鵝，量測嘴喙長度/深度、鰭長、體重、島嶼、性別）
 
