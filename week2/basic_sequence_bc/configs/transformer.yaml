@@ -1,0 +1,14 @@
+# Causal self-attention over a 32-action-step window. Same next-action-token
+# objective as bigram.yaml, but now the model can condition on the whole
+# preceding window instead of just the last action. block_size=32 keeps
+# every episode usable (the shortest held-out episode has 49 steps).
+model: transformer
+block_size: 32
+n_embd: 128
+n_head: 4
+n_layer: 4
+dropout: 0.1
+epochs: 10
+steps_per_epoch: 300
+lr: 0.0003
+batch_size: 64

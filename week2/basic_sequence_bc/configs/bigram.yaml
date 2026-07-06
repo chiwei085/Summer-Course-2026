@@ -1,0 +1,6 @@
+# Baseline: predicts the next action token from only the current one -- no
+# context, no attention. Trains almost instantly; the rollout drifts off
+# the demonstrator's actual path almost immediately.
+model: bigram
+epochs: 5
+lr: 0.01
