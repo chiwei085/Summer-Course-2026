@@ -1,0 +1,7 @@
+# Baseline: strided convolutions + global average pool. Local receptive
+# fields, no attention -- see the "encoder snapshot" card in the report for
+# an input-gradient saliency map instead of an attention map.
+model: cnn
+epochs: 8
+lr: 0.001
+batch_size: 64

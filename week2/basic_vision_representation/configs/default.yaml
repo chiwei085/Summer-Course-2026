@@ -1,0 +1,21 @@
+# Default hyperparameters for `src.train`, modeled after
+# `basic_sequence_bc`'s config.yaml: every CLI flag has a matching key
+# here, and any value not passed on the command line falls back to what's
+# written in this file.
+#
+# Resolution order (highest wins): CLI flag > `--config <path>` > this file.
+
+model: cnn             # cnn | vit
+patch_size: 12         # ViT patch size in pixels; 96 / 12 = 8x8 = 64 patches (vit only)
+n_embd: 128            # embedding dim (vit only)
+n_head: 4              # attention heads (vit only)
+n_layer: 4             # transformer blocks (vit only)
+dropout: 0.0           # vit only
+epochs: 5
+steps_per_epoch: 200   # gradient steps per epoch (25650 frames, no fixed "one pass" definition used here)
+lr: 0.001              # AdamW learning rate
+batch_size: 64
+seed: 0
+n_samples: 6           # held-out frames shown in the per-epoch qualitative panel
+run_id: null           # auto-generated if omitted
+device: null           # cuda | cpu; auto-detected if omitted
