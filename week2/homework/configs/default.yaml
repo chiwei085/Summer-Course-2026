@@ -1,0 +1,30 @@
+# Default hyperparameters for `src.train`, modeled after the earlier labs'
+# config.yaml: every CLI flag has a matching key here, and any value not
+# passed on the command line falls back to what's written in this file.
+#
+# Resolution order (highest wins): CLI flag > `--config <path>` > this file.
+
+camera: image             # image | image2 -- which of the two fixed camera views to use
+image_size: 128           # raw frames are 256x256; downsized to keep one consumer GPU happy
+patch_size: 16            # 128 / 16 = 8x8 = 64 vision patches
+max_instruction_len: 16   # words per instruction, padded/truncated to this length
+bins_per_dim: 32          # action tokenizer: bins per axis (7 independent per-axis vocabs)
+block_size: 8             # action-chunk length in steps, conditioned on one image + instruction
+n_embd: 128               # shared embedding dim across vision/language/action
+n_head: 4
+n_vision_layer: 2         # self-attention blocks in the vision trunk
+n_lang_layer: 2           # self-attention blocks in the language trunk
+n_action_layer: 4         # fusion blocks in the action decoder (self-attn + cross-attn + mlp)
+dropout: 0.0
+epochs: 5
+steps_per_epoch: 200      # gradient steps per epoch (13021 frames, no fixed "one pass" definition used here)
+lr: 0.001                 # AdamW learning rate
+batch_size: 32
+seed: 0
+val_episode: 0            # which held-out episode to roll out for the per-epoch sample
+prompt_len: 4              # real action steps fed as context before rolling out
+gen_length: 16             # action steps to roll out for the sample
+temperature: 0.8           # sampling temperature for the rollout
+n_samples: 4               # held-out windows shown in the per-epoch qualitative panel
+run_id: null               # auto-generated if omitted
+device: null               # cuda | cpu; auto-detected if omitted
