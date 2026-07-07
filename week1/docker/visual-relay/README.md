@@ -29,6 +29,32 @@ Three containers, three isolated Docker networks, one data plane per network:
   handoff to `catcher-station`.
 - **control-net** — the stations hold a control lease back with `relay-simulator`.
 
+`relay-simulator` sits on camera-net and control-net. The two stations sit on
+all three. All three networks are internal only, so no service needs to reach
+the internet at runtime.
+
+## 0. Your Task
+
+The C++ system is finished. `scripts/`, `grader/`, and the
+`compose.gui-*.yaml` display overlays need no changes and are off limits.
+What you get is the **worst `Dockerfile`, `compose.yaml`, and
+`.dockerignore` that still run**: one image with the toolchain, all sources,
+and all three services inside, deployed three times onto one flat network
+with default privileges and no supervision.
+
+Your assignment: make `./grader/grade.sh` fully green. The grader's output
+is the spec. Run it first, read every `[FAIL]` line, fix one at a time.
+It will demand, at minimum:
+
+- a real multi-stage build, fast reproducible rebuilds, a working
+  `.dockerignore`, and a `test` build target that runs the unit tests
+- runtime images that are small, non-root, and free of toolchain and sources
+- the three-network topology described above, real per-service healthchecks,
+  hardened runtime containers, and explicit resource limits
+
+How you get each one there is the exercise. Compare `docker image ls`
+before and after. The difference is the point.
+
 ## 1. Run It
 
 If the scripts are not executable after checkout, fix their permissions first:

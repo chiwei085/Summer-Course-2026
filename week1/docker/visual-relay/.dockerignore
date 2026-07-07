@@ -1,23 +1,2 @@
-.git
-.gitignore
-build
-cmake-build-*
-out
-.cache
-.ccache
-.idea
-.vscode
-*.swp
-*.swo
-*.log
-*.mp4
-*.avi
-*.mkv
-*.png
-*.jpg
-*.jpeg
-*.core
-core
-grader/tmp
-grader/reports
-README.local.md
+# TODO: this file is empty on purpose. Decide what the docker context (and
+# therefore the image) should never receive.

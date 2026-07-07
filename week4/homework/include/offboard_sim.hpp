@@ -102,15 +102,15 @@ inline SimulationResult simulate_tracking(const trajectory::PlannedTrajectory &p
         previous_heartbeat = mode.timestamp;
 
         const TrackingError error = make_error(vehicle, setpoint);
-        px4::Vector3 accel_command = setpoint.acceleration +
-                                     config.position_gain * error.position +
-                                     config.velocity_gain * error.velocity;
-        clamp_norm(accel_command, config.max_vehicle_acceleration_mps2);
 
-        const double yawspeed_error = setpoint.yawspeed - vehicle.attitude.yawspeed;
-        const double yawaccel_command = clamp_abs(
-            config.yaw_gain * error.yaw_rad + config.yawspeed_gain * yawspeed_error,
-            config.max_yawaccel_radps2);
+        // TODO: the tracking law. Compute the acceleration command that
+        // tracks `setpoint`, and the yaw acceleration command that tracks
+        // its yaw, respecting the limits in `config` (whose gains are tuned
+        // for a correct implementation).
+        //
+        // Placeholder: no control, so the vehicle never moves.
+        px4::Vector3 accel_command = px4::Vector3::Zero();
+        const double yawaccel_command = 0.0;
 
         const double time_s = static_cast<double>(setpoint.timestamp) * 1.0e-6;
         result.samples.push_back({

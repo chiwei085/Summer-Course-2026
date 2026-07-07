@@ -10,6 +10,22 @@ array of poses: commands, frames, timestamps, speed changes, ROI fields, and
 octagon in the XY plane so you can compare the raw waypoint geometry against
 the generated smooth trajectory in `trajectory.html`.
 
+## Your task
+
+The mission parser, navigator, offboard plant simulation, diagnostics, and
+HTML output are all provided. Three `TODO` blocks are yours:
+
+1. `trajectory_generator.hpp: duration_for_limits` sizes each segment's
+   duration.
+2. `trajectory_generator.hpp: append_motion_segment` fills the sampled
+   setpoints.
+3. `offboard_sim.hpp: simulate_tracking` is the tracking law.
+
+The pipeline builds and runs in its current form, but the vehicle never leaves the ground
+and the diagnostics report fails. You are done when the program prints
+`result: passed` and the animation in `trajectory.html` tracks the octagon
+cleanly.
+
 ## System Overview
 
 ![Pipeline overview](docs/pipeline_overview.png)

@@ -56,24 +56,16 @@ inline double smoothstep5_d3(double u) { return 60.0 - 360.0 * u + 360.0 * u * u
 inline double duration_for_limits(double distance, double yaw_delta,
                                   double requested_speed,
                                   const TrajectoryConfig &config) {
-    const double speed = std::clamp(requested_speed, 0.1, config.max_velocity_mps);
-    double duration = std::max(config.min_segment_duration_s, 1.875 * distance / speed);
-    if (distance > 1.0e-6) {
-        duration = std::max(
-            duration,
-            std::sqrt(5.8 * distance / std::max(1.0e-6, config.max_acceleration_mps2)));
-        duration =
-            std::max(duration, std::cbrt(60.0 * distance /
-                                         std::max(1.0e-6, config.max_jerk_mps3)));
-    }
-    const double abs_yaw = std::abs(yaw_delta);
-    if (abs_yaw > 1.0e-6) {
-        duration = std::max(duration, abs_yaw / config.max_yawspeed_radps);
-        duration =
-            std::max(duration, std::sqrt(5.8 * abs_yaw /
-                                         std::max(1.0e-6, config.max_yawaccel_radps2)));
-    }
-    return duration;
+    // TODO: return the shortest duration (never below
+    // min_segment_duration_s) that keeps a smoothstep5 profile for this
+    // segment's translation and yaw within every limit in `config`,
+    // honoring the requested cruise speed.
+    //
+    // Placeholder: a fixed duration, so long segments blow the limits.
+    (void)distance;
+    (void)yaw_delta;
+    (void)requested_speed;
+    return config.min_segment_duration_s;
 }
 
 inline px4::Vector3 item_position_vector(const px4::RawMissionItem &item) {
@@ -178,21 +170,22 @@ inline void append_motion_segment(PlannedTrajectory &planned,
     };
 
     for (int i = 1; i <= steps; ++i) {
-        const double u = static_cast<double>(i) / static_cast<double>(steps);
-        const double s = smoothstep5(u);
-        const double ds = smoothstep5_d1(u) / duration;
-        const double dds = smoothstep5_d2(u) / (duration * duration);
-        const double ddds = smoothstep5_d3(u) / (duration * duration * duration);
+        [[maybe_unused]] const double u =
+            static_cast<double>(i) / static_cast<double>(steps);
 
         px4::TrajectorySetpoint sample;
         sample.timestamp = timestamp_us;
-        sample.position = from.position_ned + delta * s;
-        sample.velocity = delta * ds;
-        sample.acceleration = delta * dds;
-        sample.jerk = delta * ddds;
-        sample.yaw = yaw0 + yaw_delta * s;
+        // TODO: fill position, velocity, acceleration, jerk, yaw, and
+        // yawspeed from a smoothstep5 profile sampled at u.
+        //
+        // Placeholder: park at the segment start with zero derivatives.
+        sample.position = from.position_ned;
+        sample.velocity = px4::Vector3::Zero();
+        sample.acceleration = px4::Vector3::Zero();
+        sample.jerk = px4::Vector3::Zero();
+        sample.yaw = yaw0;
+        sample.yawspeed = 0.0;
         sample.target_yaw = segment_heading;
-        sample.yawspeed = yaw_delta * ds;
         sample.segment_index = segment_index;
         sample.segment_name = report.name;
         planned.setpoints.push_back(std::move(sample));

@@ -7,6 +7,17 @@ C++20 (no OpenCV) and served over HTTP by a vendored
 [Mongoose](https://github.com/cesanta/mongoose) server, following the same
 framework as `week3/color` and `week3/local-geometry`.
 
+## Your task
+
+The whole pipeline is provided **except the snake itself**: the greedy
+update pass in `src/snake.cpp` (`run_snake`) is a `TODO`, and until you
+implement it the contour just sits on its initial rectangle. Everything you
+need is already in scope: the gradient magnitude field, `sample_bilinear`,
+`dist`, and the parameter semantics documented in
+`include/week3/snake/snake.hpp`. The frontend animates whatever you push
+into `run.history`, so you can watch (and debug) your contour iteration by
+iteration.
+
 ## What's inside
 
 0. **Shared foundation** &mdash; grayscale conversion (BT.601 luma), a
