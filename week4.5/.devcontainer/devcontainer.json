@@ -1,0 +1,15 @@
+{
+  "name": "week4.5 fleet_tf_lab (ROS 2 Jazzy)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "ubuntu",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/tf_ws",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "llvm-vs-code-extensions.vscode-clangd"
+      ]
+    }
+  }
+}

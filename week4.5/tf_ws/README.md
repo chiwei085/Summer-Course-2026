@@ -103,6 +103,34 @@ The intended diagnosis order is itself part of the curriculum: establish
 
 ## Running the lab
 
+### Option A: Container (no local ROS 2 install needed)
+
+`week4.5/.devcontainer/` holds a trimmed `ros:jazzy` image. All
+you need on the host is Docker.
+
+**With any Dev Container client** (`devcontainer` CLI, VS Code, Zed,
+JetBrains, DevPod, ...): open the `week4.5/` folder and reopen it in the
+container. You land in `tf_ws/` with ROS already sourced:
+
+```bash
+python3 tools/tutor.py
+```
+
+**With plain Docker** (edit with whatever you like on the host):
+
+```bash
+docker build -t fleet-tf-lab week4.5/.devcontainer
+docker run -it --rm -u "$(id -u):$(id -g)" \
+  -v "$PWD/week4.5:/workspaces/week4.5" -w /workspaces/week4.5/tf_ws \
+  fleet-tf-lab bash
+# then inside:
+python3 tools/tutor.py
+```
+
+(`-u` keeps the build artifacts written to the bind mount owned by you.)
+
+### Option B: Local ROS 2 Jazzy
+
 ```bash
 source /opt/ros/jazzy/setup.bash   # or your ROS 2 Jazzy install
 cd week4.5/tf_ws
