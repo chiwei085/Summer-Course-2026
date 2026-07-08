@@ -1,0 +1,7 @@
+[package]
+name = "summer-course"
+version = "0.1.0"
+entrypoint = "lib.typ"
+authors = ["Summer Course"]
+license = "MIT"
+description = "Reusable Typst slide theme for the summer course."
