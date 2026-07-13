@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 300">
+  <defs>
+    <marker id="g1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4A57C8"/>
+    </marker>
+    <marker id="g2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#C2495D"/>
+    </marker>
+  </defs>
+  <rect width="780" height="300" rx="18" fill="#FFFFFF"/>
+
+  <!-- camera_link mechanical convention -->
+  <text x="190" y="34" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="15" font-weight="700" fill="#343D93">camera_link（機械慣例）</text>
+  <line x1="190" y1="160" x2="190" y2="80" stroke="#4A57C8" stroke-width="3" marker-end="url(#g1)"/>
+  <text x="200" y="82" font-family="Noto Sans, sans-serif" font-size="13" fill="#4A57C8">z 朝上</text>
+  <line x1="190" y1="160" x2="290" y2="160" stroke="#4A57C8" stroke-width="3" marker-end="url(#g1)"/>
+  <text x="296" y="166" font-family="Noto Sans, sans-serif" font-size="13" fill="#4A57C8">x 朝前</text>
+  <line x1="190" y1="160" x2="130" y2="215" stroke="#4A57C8" stroke-width="3" marker-end="url(#g1)"/>
+  <text x="70" y="232" font-family="Noto Sans, sans-serif" font-size="13" fill="#4A57C8">y 朝左</text>
+  <circle cx="190" cy="160" r="6" fill="#1A1D26"/>
+
+  <!-- rotation arrow between -->
+  <path d="M 330 150 A 100 60 0 0 1 470 150" fill="none" stroke="#9AA0B3" stroke-width="2.5" marker-end="url(#g1)"/>
+  <text x="400" y="120" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="13" fill="#6B7186">固定旋轉</text>
+  <text x="400" y="140" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="13" fill="#6B7186">(REP-103)</text>
+
+  <!-- camera_optical_frame vision convention -->
+  <text x="590" y="34" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="15" font-weight="700" fill="#B03A4B">camera_optical_frame（視覺慣例）</text>
+  <line x1="590" y1="160" x2="590" y2="230" stroke="#C2495D" stroke-width="3" marker-end="url(#g2)"/>
+  <text x="600" y="245" font-family="Noto Sans, sans-serif" font-size="13" fill="#C2495D">y 朝下</text>
+  <line x1="590" y1="160" x2="690" y2="160" stroke="#C2495D" stroke-width="3" marker-end="url(#g2)"/>
+  <text x="640" y="145" font-family="Noto Sans, sans-serif" font-size="13" fill="#C2495D">z 朝前</text>
+  <line x1="590" y1="160" x2="530" y2="105" stroke="#C2495D" stroke-width="3" marker-end="url(#g2)"/>
+  <text x="470" y="95" font-family="Noto Sans, sans-serif" font-size="13" fill="#C2495D">x 朝右</text>
+  <circle cx="590" cy="160" r="6" fill="#1A1D26"/>
+
+  <text x="30" y="280" font-family="Noto Sans, sans-serif" font-size="13" fill="#6B7186">漏掉這個固定旋轉，樹照樣連通、lookup 照樣有回傳值，只是方向是錯的。</text>
+</svg>

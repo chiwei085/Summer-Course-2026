@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 300">
+  <defs>
+    <marker id="c1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7186"/>
+    </marker>
+  </defs>
+  <rect width="780" height="300" rx="18" fill="#FFFFFF"/>
+
+  <text x="30" y="36" font-family="Noto Sans, sans-serif" font-size="15" font-weight="700" fill="#1A1D26">SingleThreadedExecutor：一個 process，一條時間軸</text>
+
+  <!-- single lane timeline -->
+  <line x1="40" y1="150" x2="740" y2="150" stroke="#C7CBDA" stroke-width="2"/>
+
+  <!-- normal short callbacks -->
+  <rect x="60" y="118" width="70" height="64" rx="8" fill="#EEF0FA" stroke="#4A57C8" stroke-width="1.5"/>
+  <text x="95" y="154" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="12" fill="#343D93">topic A</text>
+
+  <rect x="150" y="118" width="70" height="64" rx="8" fill="#E9F6EF" stroke="#2F855A" stroke-width="1.5"/>
+  <text x="185" y="154" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="12" fill="#2F855A">timer</text>
+
+  <!-- long-running callback blocking the lane -->
+  <rect x="240" y="110" width="300" height="80" rx="8" fill="#FBEBEC" stroke="#C2495D" stroke-width="2"/>
+  <text x="390" y="145" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="14" font-weight="700" fill="#C2495D">一個跑得很久的 callback</text>
+  <text x="390" y="166" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="12" fill="#C2495D">佔用整條唯一的執行緒</text>
+
+  <!-- starved callbacks waiting -->
+  <rect x="560" y="118" width="70" height="64" rx="8" fill="#FBF3E7" stroke="#B45309" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <text x="595" y="150" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="12" fill="#B45309">topic B</text>
+  <text x="595" y="166" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="11" fill="#B45309">等待中</text>
+
+  <rect x="650" y="118" width="70" height="64" rx="8" fill="#FBF3E7" stroke="#B45309" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <text x="685" y="150" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="12" fill="#B45309">timer</text>
+  <text x="685" y="166" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="11" fill="#B45309">等待中</text>
+
+  <text x="60" y="230" font-family="Noto Sans, sans-serif" font-size="13" fill="#6B7186">佇列裡的 callback 依序輪流執行，同一時間只跑一個。</text>
+  <text x="60" y="254" font-family="Noto Sans, sans-serif" font-size="13" fill="#6B7186">前一個沒返回，後面全部插不了隊，不論它們原本多重要。</text>
+</svg>

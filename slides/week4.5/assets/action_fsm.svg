@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360">
+  <defs>
+    <marker id="e1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4A57C8"/>
+    </marker>
+  </defs>
+  <rect width="800" height="360" rx="18" fill="#FFFFFF"/>
+
+  <!-- ACCEPTED -->
+  <rect x="30" y="150" width="130" height="60" rx="30" fill="#EEF0FA" stroke="#4A57C8" stroke-width="2"/>
+  <text x="95" y="185" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="14" font-weight="700" fill="#343D93">ACCEPTED</text>
+
+  <!-- EXECUTING -->
+  <rect x="250" y="150" width="150" height="60" rx="30" fill="#EEF0FA" stroke="#4A57C8" stroke-width="2"/>
+  <text x="325" y="185" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="14" font-weight="700" fill="#343D93">EXECUTING</text>
+
+  <!-- CANCELING -->
+  <rect x="290" y="30" width="150" height="55" rx="27" fill="#FBF3E7" stroke="#B45309" stroke-width="2"/>
+  <text x="365" y="63" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="13" font-weight="700" fill="#B45309">CANCELING</text>
+
+  <!-- terminal states -->
+  <rect x="560" y="60" width="170" height="55" rx="27" fill="#E9F6EF" stroke="#2F855A" stroke-width="2"/>
+  <text x="645" y="93" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="14" font-weight="700" fill="#2F855A">SUCCEEDED</text>
+
+  <rect x="560" y="150" width="170" height="55" rx="27" fill="#FBEBEC" stroke="#C2495D" stroke-width="2"/>
+  <text x="645" y="183" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="14" font-weight="700" fill="#C2495D">ABORTED</text>
+
+  <rect x="560" y="240" width="170" height="55" rx="27" fill="#F1F1F5" stroke="#6B7186" stroke-width="2"/>
+  <text x="645" y="273" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="14" font-weight="700" fill="#3D4357">CANCELED</text>
+
+  <!-- transitions -->
+  <line x1="160" y1="180" x2="248" y2="180" stroke="#4A57C8" stroke-width="2.5" marker-end="url(#e1)"/>
+  <text x="200" y="170" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="12" fill="#4A57C8">execute</text>
+
+  <path d="M 340 150 C 340 120, 350 100, 355 87" fill="none" stroke="#B45309" stroke-width="2.5" marker-end="url(#e1)"/>
+  <text x="300" y="120" text-anchor="middle" font-family="Noto Sans, sans-serif" font-size="12" fill="#B45309">cancel 請求</text>
+
+  <path d="M 400 150 C 480 120, 540 100, 558 88" fill="none" stroke="#4A57C8" stroke-width="2" marker-end="url(#e1)"/>
+  <path d="M 400 180 C 480 180, 540 180, 558 178" fill="none" stroke="#4A57C8" stroke-width="2" marker-end="url(#e1)"/>
+  <path d="M 440 45 C 500 50, 540 80, 558 105" fill="none" stroke="#2F855A" stroke-width="2" marker-end="url(#e1)"/>
+  <path d="M 400 55 C 480 130, 540 220, 558 250" fill="none" stroke="#6B7186" stroke-width="2" marker-end="url(#e1)"/>
+
+  <text x="30" y="330" font-family="Noto Sans, sans-serif" font-size="13" fill="#6B7186">終止狀態一旦進入就不可逆，get_result service 回傳其中一個。</text>
+</svg>
