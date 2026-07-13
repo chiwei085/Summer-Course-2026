@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340">
+  <defs>
+    <marker id="garr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7186"/>
+    </marker>
+  </defs>
+  <rect width="900" height="340" rx="18" fill="#FFFFFF"/>
+
+  <text x="60" y="34" font-family="Noto Sans, sans-serif" font-size="19" font-weight="bold" fill="#1A1D26">一般姿態：三軸互相獨立</text>
+  <g transform="translate(215,175)">
+    <ellipse cx="0" cy="0" rx="100" ry="100" fill="none" stroke="#4A57C8" stroke-width="3"/>
+    <ellipse cx="0" cy="0" rx="100" ry="50" fill="none" stroke="#0F7E88" stroke-width="3"/>
+    <ellipse cx="0" cy="0" rx="50" ry="100" fill="none" stroke="#B45309" stroke-width="3"/>
+    <line x1="-115" y1="0" x2="115" y2="0" stroke="#4A57C8" stroke-width="2.5" marker-end="url(#garr)"/>
+    <line x1="0" y1="115" x2="0" y2="-115" stroke="#B45309" stroke-width="2.5" marker-end="url(#garr)"/>
+    <line x1="-80" y1="-80" x2="80" y2="80" stroke="#0F7E88" stroke-width="2.5" marker-end="url(#garr)" opacity="0.85"/>
+    <text x="0" y="-128" font-size="14" fill="#B45309" text-anchor="middle">yaw 軸</text>
+    <text x="118" y="-8" font-size="14" fill="#4A57C8" text-anchor="start">roll 軸</text>
+    <text x="55" y="105" font-size="14" fill="#0F7E88" text-anchor="start">pitch 軸</text>
+  </g>
+  <text x="215" y="320" font-size="14" fill="#3D4357" text-anchor="middle">rank ∂R/∂(φ,θ,ψ) = 3</text>
+
+  <line x1="450" y1="20" x2="450" y2="320" stroke="#E2E5EC" stroke-width="2"/>
+
+  <text x="490" y="34" font-family="Noto Sans, sans-serif" font-size="19" font-weight="bold" fill="#C2495D">θ = π/2：roll 與 yaw 軸重合</text>
+  <g transform="translate(660,175)">
+    <ellipse cx="0" cy="0" rx="100" ry="100" fill="none" stroke="#4A57C8" stroke-width="3"/>
+    <ellipse cx="0" cy="0" rx="100" ry="50" fill="none" stroke="#0F7E88" stroke-width="3"/>
+    <ellipse cx="0" cy="0" rx="50" ry="100" fill="none" stroke="#C2495D" stroke-width="4"/>
+    <line x1="0" y1="115" x2="0" y2="-115" stroke="#C2495D" stroke-width="4" marker-end="url(#garr)"/>
+    <line x1="-80" y1="-80" x2="80" y2="80" stroke="#0F7E88" stroke-width="2.5" marker-end="url(#garr)" opacity="0.85"/>
+    <text x="0" y="-128" font-size="14" fill="#C2495D" text-anchor="middle">roll = yaw（同一條線）</text>
+    <text x="55" y="105" font-size="14" fill="#0F7E88" text-anchor="start">pitch 軸</text>
+    <circle cx="0" cy="0" r="7" fill="#C2495D"/>
+  </g>
+  <text x="660" y="310" font-size="14" fill="#C2495D" font-weight="bold" text-anchor="middle">rank ∂R/∂(φ,θ,ψ) &lt; 3</text>
+  <text x="660" y="330" font-size="13" fill="#C2495D" text-anchor="middle">（座標退化，SO(3) 仍是三維）</text>
+</svg>

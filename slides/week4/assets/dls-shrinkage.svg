@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360">
+  <defs>
+    <marker id="darr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7186"/>
+    </marker>
+  </defs>
+  <rect width="800" height="360" rx="18" fill="#FFFFFF"/>
+
+  <!-- axes -->
+  <line x1="60" y1="300" x2="730" y2="300" stroke="#9AA0B3" stroke-width="2" marker-end="url(#darr)"/>
+  <line x1="60" y1="300" x2="60" y2="30" stroke="#9AA0B3" stroke-width="2" marker-end="url(#darr)"/>
+  <text x="580" y="325" font-family="Noto Sans, sans-serif" font-size="16" fill="#6B7186">σ (singular value)</text>
+  <text x="20" y="40" font-family="Noto Sans, sans-serif" font-size="16" fill="#6B7186">gain</text>
+
+  <!-- lambda marker -->
+  <line x1="273" y1="300" x2="273" y2="40" stroke="#B45309" stroke-width="1.4" stroke-dasharray="6 5" opacity="0.7"/>
+  <text x="250" y="316" font-size="14" fill="#B45309">σ = λ</text>
+
+  <!-- 1/sigma curve (pseudoinverse, blows up) -->
+  <polyline points="108,34 117.2,50.0 121.6,67.9 126.0,83.3 130.4,96.9 139.2,119.4 148.0,137.5 161.2,158.7 178.8,179.6 200.8,198.4 227.2,214.5 258.0,227.8 293.2,238.7 332.8,247.6 376.8,254.9 425.2,260.8 478.0,265.8 535.2,269.9 596.8,273.4 662.8,276.3 720.0,278.3"
+    fill="none" stroke="#C2495D" stroke-width="3.5"/>
+  <text x="440" y="222" font-size="15" fill="#C2495D" font-weight="bold">J⁺：1/σ 在 σ→0 發散</text>
+
+  <!-- DLS curve: sigma/(sigma^2+lambda^2), bounded peak -->
+  <polyline points="60.0,300.0 90.8,291.1 121.6,283.1 156.8,276.0 192.0,271.3 227.2,268.7 258.0,267.7 293.2,267.6 332.8,268.2 376.8,269.5 425.2,271.3 478.0,273.2 535.2,275.2 596.8,277.2 662.8,279.1 720.0,280.5"
+    fill="none" stroke="#0F7E88" stroke-width="3.5"/>
+  <text x="430" y="292" font-size="15" fill="#0F7E88" font-weight="bold">DLS：σ/(σ²+λ²) 有限、平滑</text>
+
+  <circle cx="60" cy="300" r="6" fill="#0F7E88"/>
+  <text x="30" y="300" font-size="13" fill="#0F7E88" text-anchor="end">0</text>
+</svg>

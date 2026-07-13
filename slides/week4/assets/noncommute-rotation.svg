@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340">
+  <defs>
+    <marker id="arrB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7186"/>
+    </marker>
+    <marker id="arrTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0F7E88"/>
+    </marker>
+    <marker id="arrRose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#C2495D"/>
+    </marker>
+  </defs>
+  <rect width="760" height="340" rx="18" fill="#FFFFFF"/>
+
+  <!-- Left panel: R_x(pi/2) then R_y(pi/2) -->
+  <text x="60" y="34" font-family="Noto Sans, sans-serif" font-size="19" font-weight="bold" fill="#1A1D26">先繞 x 轉 90° 再繞 y 轉 90°</text>
+  <g transform="translate(190,190)">
+    <line x1="-90" y1="0" x2="90" y2="0" stroke="#9AA0B3" stroke-width="2" marker-end="url(#arrB)"/>
+    <line x1="60" y1="60" x2="-60" y2="-60" stroke="#9AA0B3" stroke-width="2" marker-end="url(#arrB)"/>
+    <line x1="0" y1="90" x2="0" y2="-90" stroke="#9AA0B3" stroke-width="2" marker-end="url(#arrB)"/>
+    <text x="96" y="6" font-size="16" fill="#6B7186">x</text>
+    <text x="-72" y="-66" font-size="16" fill="#6B7186">y</text>
+    <text x="8" y="-92" font-size="16" fill="#6B7186">z</text>
+    <!-- start vector e_z -->
+    <line x1="0" y1="0" x2="0" y2="-78" stroke="#1A1D26" stroke-width="4" stroke-dasharray="2 6" opacity="0.55"/>
+    <!-- step 1: rotate about x, z -> -y -->
+    <path d="M 10 -70 A 70 70 0 0 1 50 50" fill="none" stroke="#B45309" stroke-width="3" marker-end="url(#arrB)"/>
+    <text x="24" y="-64" font-size="13" fill="#B45309">R_x(90°)</text>
+    <line x1="0" y1="0" x2="48" y2="48" stroke="#B45309" stroke-width="4" stroke-dasharray="2 6" opacity="0.55"/>
+    <!-- step 2: rotate about y, -y unaffected -->
+    <path d="M 30 48 A 18 18 0 0 1 48 30" fill="none" stroke="#0F7E88" stroke-width="3"/>
+    <text x="20" y="80" font-size="13" fill="#0F7E88">R_y(90°) 不動 y 分量</text>
+    <circle cx="48" cy="48" r="9" fill="#0F7E88"/>
+  </g>
+  <text x="120" y="330" font-size="15" font-weight="bold" fill="#0F7E88">結果：(0, −1, 0)</text>
+
+  <!-- divider -->
+  <line x1="380" y1="20" x2="380" y2="300" stroke="#E2E5EC" stroke-width="2"/>
+
+  <!-- Right panel: R_y(pi/2) then R_x(pi/2) -->
+  <text x="450" y="34" font-family="Noto Sans, sans-serif" font-size="19" font-weight="bold" fill="#1A1D26">先繞 y 轉 90° 再繞 x 轉 90°</text>
+  <g transform="translate(580,190)">
+    <line x1="-90" y1="0" x2="90" y2="0" stroke="#9AA0B3" stroke-width="2" marker-end="url(#arrB)"/>
+    <line x1="60" y1="60" x2="-60" y2="-60" stroke="#9AA0B3" stroke-width="2" marker-end="url(#arrB)"/>
+    <line x1="0" y1="90" x2="0" y2="-90" stroke="#9AA0B3" stroke-width="2" marker-end="url(#arrB)"/>
+    <text x="96" y="6" font-size="16" fill="#6B7186">x</text>
+    <text x="-72" y="-66" font-size="16" fill="#6B7186">y</text>
+    <text x="8" y="-92" font-size="16" fill="#6B7186">z</text>
+    <line x1="0" y1="0" x2="0" y2="-78" stroke="#1A1D26" stroke-width="4" stroke-dasharray="2 6" opacity="0.55"/>
+    <!-- step 1: rotate about y, z -> x -->
+    <path d="M -10 -70 A 70 70 0 0 0 66 -8" fill="none" stroke="#B45309" stroke-width="3" marker-end="url(#arrB)"/>
+    <text x="10" y="-72" font-size="13" fill="#B45309">R_y(90°)</text>
+    <line x1="0" y1="0" x2="60" y2="-8" stroke="#B45309" stroke-width="4" stroke-dasharray="2 6" opacity="0.55"/>
+    <!-- step 2: rotate about x, +x unaffected -->
+    <path d="M 50 -14 A 18 18 0 0 0 50 -30" fill="none" stroke="#C2495D" stroke-width="3"/>
+    <text x="10" y="-30" font-size="13" fill="#C2495D">R_x(90°) 不動 x 分量</text>
+    <circle cx="60" cy="-8" r="9" fill="#C2495D"/>
+  </g>
+  <text x="500" y="330" font-size="15" font-weight="bold" fill="#C2495D">結果：(1, 0, 0)</text>
+</svg>
